@@ -1,0 +1,55 @@
+<view class="container">
+  <!-- Logo -->
+  <view class="logo-section">
+    <view class="logo">
+      <text class="logo-text">TC</text>
+    </view>
+    <text class="title">TechCommunity</text>
+    <text class="subtitle">欢迎回来</text>
+  </view>
+
+  <!-- 登录表单 -->
+  <view class="form-section">
+    <view class="form-item">
+      <input 
+        class="input" 
+        placeholder="用户名" 
+        value="{{form.username}}"
+        bindinput="onUsernameInput"
+      />
+    </view>
+    <view class="form-item">
+      <input 
+        class="input" 
+        type="password" 
+        placeholder="密码" 
+        value="{{form.password}}"
+        bindinput="onPasswordInput"
+      />
+    </view>
+    <button class="login-btn {{canLogin ? '' : 'disabled'}}" bindtap="onLogin" loading="{{loading}}">
+      登录
+    </button>
+  </view>
+
+  <!-- 其他登录方式 -->
+  <view class="other-login">
+    <view class="divider">
+      <view class="line"></view>
+      <text>其他登录方式</text>
+      <view class="line"></view>
+    </view>
+    <view class="oauth-list">
+      <button class="oauth-btn" bindtap="onWechatLogin" open-type="getPhoneNumber" wx:if="{{canWechatLogin}}">
+        <image src="/assets/icons/wechat.png" mode="aspectFit"></image>
+        <text>微信登录</text>
+      </button>
+    </view>
+  </view>
+
+  <!-- 注册链接 -->
+  <view class="register-link">
+    <text>还没有账号？</text>
+    <text class="link" bindtap="onRegister">立即注册</text>
+  </view>
+</view>

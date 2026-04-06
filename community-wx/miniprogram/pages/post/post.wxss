@@ -1,0 +1,277 @@
+.container {
+  min-height: 100vh;
+  background-color: #F5F7FA;
+  padding-bottom: 120rpx;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 200rpx 0;
+  color: #999;
+}
+
+.post-detail {
+  background-color: #fff;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.user-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30rpx;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+}
+
+.avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  margin-right: 20rpx;
+}
+
+.user-detail {
+  display: flex;
+  flex-direction: column;
+}
+
+.username {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.time {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.follow-btn {
+  padding: 12rpx 30rpx;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  background-color: #409EFF;
+  color: #fff;
+  border: none;
+}
+
+.follow-btn.following {
+  background-color: #F5F5F5;
+  color: #666;
+}
+
+.title-section {
+  margin-bottom: 30rpx;
+}
+
+.title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  line-height: 1.4;
+  margin-bottom: 16rpx;
+}
+
+.tags {
+  display: flex;
+  gap: 12rpx;
+}
+
+.tag {
+  padding: 6rpx 16rpx;
+  border-radius: 6rpx;
+  font-size: 24rpx;
+}
+
+.tag-top {
+  background-color: #FFF0F0;
+  color: #F56C6C;
+}
+
+.tag-essence {
+  background-color: #FFF9E6;
+  color: #E6A23C;
+}
+
+.tag-section {
+  background-color: #ECF5FF;
+  color: #409EFF;
+}
+
+.content-section {
+  font-size: 30rpx;
+  color: #333;
+  line-height: 1.8;
+  margin-bottom: 30rpx;
+}
+
+.cover-image {
+  width: 100%;
+  border-radius: 12rpx;
+  margin-bottom: 30rpx;
+}
+
+.action-bar {
+  display: flex;
+  align-items: center;
+  padding-top: 30rpx;
+  border-top: 1rpx solid #F5F5F5;
+}
+
+.action-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  font-size: 28rpx;
+  color: #999;
+}
+
+.action-item .liked {
+  color: #F56C6C;
+}
+
+.action-item .collected {
+  color: #E6A23C;
+}
+
+.comment-section {
+  background-color: #fff;
+  padding: 30rpx;
+}
+
+.section-header {
+  margin-bottom: 30rpx;
+}
+
+.section-header .title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.empty-comment {
+  text-align: center;
+  padding: 60rpx 0;
+  color: #999;
+  font-size: 28rpx;
+}
+
+.comment-list {
+  border-top: 1rpx solid #F5F5F5;
+}
+
+.comment-item {
+  padding: 30rpx 0;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+
+.comment-user {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.avatar-sm {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  margin-right: 16rpx;
+}
+
+.comment-user-info {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.comment-user-info .name {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.comment-user-info .floor {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.comment-content {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+  margin-bottom: 16rpx;
+}
+
+.comment-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.comment-footer .time {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.comment-action {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.comment-action .liked {
+  color: #F56C6C;
+}
+
+.load-more {
+  text-align: center;
+  padding: 30rpx;
+  color: #409EFF;
+  font-size: 28rpx;
+}
+
+.comment-input-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding: 20rpx 30rpx;
+  background-color: #fff;
+  border-top: 1rpx solid #F0F0F0;
+}
+
+.comment-input {
+  flex: 1;
+  padding: 20rpx 30rpx;
+  background-color: #F5F7FA;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+}
+
+.submit-btn {
+  margin-left: 20rpx;
+  padding: 16rpx 36rpx;
+  background-color: #409EFF;
+  color: #fff;
+  border-radius: 32rpx;
+  font-size: 28rpx;
+}
+
+.submit-btn[disabled] {
+  background-color: #CCCCCC;
+}

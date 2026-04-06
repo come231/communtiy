@@ -1,0 +1,88 @@
+<view class="container">
+  <!-- 用户信息卡片 -->
+  <view class="profile-card">
+    <view class="user-header">
+      <view class="user-bg"></view>
+      <view class="user-content">
+        <image class="avatar" src="{{userInfo.avatar || '/assets/default-avatar.png'}}" mode="aspectFill"></image>
+        <view class="user-info">
+          <text class="nickname">{{userInfo.nickname || userInfo.username}}</text>
+          <text class="username">@{{userInfo.username}}</text>
+        </view>
+        <button wx:if="{{isMe}}" class="edit-btn" bindtap="goToEdit">编辑资料</button>
+        <button wx:else class="follow-btn {{isFollowing ? 'following' : ''}}" bindtap="toggleFollow">
+          {{isFollowing ? '已关注' : '+ 关注'}}
+        </button>
+      </view>
+    </view>
+    
+    <!-- 简介 -->
+    <view wx:if="{{userInfo.bio}}" class="bio">{{userInfo.bio}}</view>
+    
+    <!-- 数据统计 -->
+    <view class="stats">
+      <view class="stat-item" bindtap="goToFollowing">
+        <text class="num">{{userInfo.followingCount || 0}}</text>
+        <text class="label">关注</text>
+      </view>
+      <view class="stat-item" bindtap="goToFollowers">
+        <text class="num">{{userInfo.followersCount || 0}}</text>
+        <text class="label">粉丝</text>
+      </view>
+      <view class="stat-item">
+        <text class="num">{{userInfo.postsCount || 0}}</text>
+        <text class="label">帖子</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 快捷入口 -->
+  <view class="quick-actions">
+    <view class="action-item" bindtap="goToCheckin">
+      <image src="/assets/icons/checkin.png" mode="aspectFit"></image>
+      <text>每日签到</text>
+    </view>
+    <view class="action-item" bindtap="goToCollections">
+      <image src="/assets/icons/collect.png" mode="aspectFit"></image>
+      <text>我的收藏</text>
+    </view>
+    <view class="action-item" bindtap="goToHistory">
+      <image src="/assets/icons/history.png" mode="aspectFit"></image>
+      <text>浏览历史</text>
+    </view>
+    <view class="action-item" bindtap="goToDrafts">
+      <image src="/assets/icons/draft.png" mode="aspectFit"></image>
+      <text>草稿箱</text>
+    </view>
+  </view>
+
+  <!-- 菜单列表 -->
+  <view class="menu-list">
+    <view class="menu-item" bindtap="goToAI">
+      <image class="menu-icon" src="/assets/icons/ai.png" mode="aspectFit"></image>
+      <text class="menu-text">AI助手</text>
+      <text class="menu-arrow">></text>
+    </view>
+    <view class="menu-item" bindtap="goToSettings">
+      <image class="menu-icon" src="/assets/icons/settings.png" mode="aspectFit"></image>
+      <text class="menu-text">设置</text>
+      <text class="menu-arrow">></text>
+    </view>
+    <view class="menu-item" wx:if="{{!isMe}}" bindtap="reportUser">
+      <image class="menu-icon" src="/assets/icons/report.png" mode="aspectFit"></image>
+      <text class="menu-text">举报</text>
+      <text class="menu-arrow">></text>
+    </view>
+  </view>
+
+  <!-- 未登录 -->
+  <view wx:if="{{!isLogin}}" class="not-login">
+    <text>登录后可查看更多功能</text>
+    <button class="login-btn" bindtap="goToLogin">登录 / 注册</button>
+  </view>
+
+  <!-- 退出登录 -->
+  <view wx:if="{{isLogin && isMe}}" class="logout" bindtap="onLogout">
+    <text>退出登录</text>
+  </view>
+</view>

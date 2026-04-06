@@ -1,0 +1,49 @@
+server:
+  port: 8092
+
+spring:
+  amqp:
+    deserialization:
+      trust-all: true
+  application:
+    name: community-ai
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+      config:
+        server-addr: localhost:8848
+  datasource:
+    url: jdbc:mysql://localhost:3306/community_ai?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  ai:
+    openai:
+      api-key: ${AI_API_KEY:df28fd2c06ca400f8f2af93901dc16cb.lDfaiHsjXkIKCVaY}
+      base-url: ${AI_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
+      chat:
+        options:
+          model: ${AI_MODEL:glm-4-flash}
+          temperature: 0.7
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+
+logging:
+  level:
+    com.community.ai.mapper: DEBUG

@@ -1,0 +1,85 @@
+<view class="container">
+  <!-- 搜索框 -->
+  <view class="search-box">
+    <input 
+      class="search-input" 
+      placeholder="搜索帖子、话题、用户..." 
+      value="{{keyword}}"
+      bindinput="onInput"
+      bindconfirm="onSearch"
+      focus
+    />
+    <text class="cancel" bindtap="onCancel">取消</text>
+  </view>
+
+  <!-- 热门搜索 -->
+  <view wx:if="{{!keyword && !searched}}" class="section">
+    <view class="section-header">
+      <text class="title">热门搜索</text>
+      <text class="refresh" bindtap="loadHotSearch">刷新</text>
+    </view>
+    <view class="hot-list">
+      <view wx:for="{{hotList}}" wx:key="index" class="hot-item" bindtap="quickSearch" data-keyword="{{item.keyword}}">
+        <text class="rank {{index < 3 ? 'top' : ''}}">{{index + 1}}</text>
+        <text class="keyword">{{item.keyword}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 搜索历史 -->
+  <view wx:if="{{!keyword && !searched && history.length > 0}}" class="section">
+    <view class="section-header">
+      <text class="title">搜索历史</text>
+      <text class="clear" bindtap="clearHistory">清空</text>
+    </view>
+    <view class="history-list">
+      <view wx:for="{{history}}" wx:key="index" class="history-item" bindtap="quickSearch" data-keyword="{{item}}">
+        {{item}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 搜索结果 -->
+  <view wx:if="{{searched}}" class="results">
+    <!-- Tab -->
+    <view class="result-tabs">
+      <view wx:for="{{resultTabs}}" wx:key="key" class="tab {{activeResult === item.key ? 'active' : ''}}" bindtap="switchResult" data-key="{{item.key}}">
+        {{item.label}}{{item.count > 0 ? '(' + item.count + ')' : ''}}
+      </view>
+    </view>
+
+    <!-- 帖子结果 -->
+    <scroll-view wx:if="{{activeResult === 'posts'}}" scroll-y class="result-list">
+      <view wx:if="{{postResults.length === 0}}" class="empty">未找到相关帖子</view>
+      <view wx:for="{{postResults}}" wx:key="postId" class="post-item" bindtap="goToPost" data-id="{{item.postId}}">
+        <text class="title">{{item.title}}</text>
+        <view class="meta">
+          <text>{{item.authorName}}</text>
+          <text>{{item.createTimeStr}}</text>
+          <text>浏览 {{item.viewCount || 0}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 用户结果 -->
+    <scroll-view wx:if="{{activeResult === 'users'}}" scroll-y class="result-list">
+      <view wx:if="{{userResults.length === 0}}" class="empty">未找到相关用户</view>
+      <view wx:for="{{userResults}}" wx:key="id" class="user-item" bindtap="goToUser" data-id="{{item.id}}">
+        <image class="avatar" src="{{item.avatar || '/assets/default-avatar.png'}}" mode="aspectFill"></image>
+        <view class="info">
+          <text class="name">{{item.nickname || item.username}}</text>
+          <text class="bio">{{item.bio || '暂无简介'}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 话题结果 -->
+    <scroll-view wx:if="{{activeResult === 'topics'}}" scroll-y class="result-list">
+      <view wx:if="{{topicResults.length === 0}}" class="empty">未找到相关话题</view>
+      <view wx:for="{{topicResults}}" wx:key="id" class="topic-item" bindtap="goToTopic" data-id="{{item.id}}">
+        <text class="name">#{{item.name}}</text>
+        <text class="desc">{{item.description || '暂无描述'}}</text>
+      </view>
+    </scroll-view>
+  </view>
+</view>

@@ -1,0 +1,18 @@
+{
+  "name": "_auto_3213551d0e20441d91ec4ef8fe1a54c1",
+  "leadAgentId": "3213551d0e20441d91ec4ef8fe1a54c1",
+  "workspacePath": "c:\\Users\\lenovo\\Desktop\\community",
+  "createdAt": "2026-04-03T09:31:07.157Z",
+  "options": {
+    "workspacePath": "c:\\Users\\lenovo\\Desktop\\community",
+    "isAutoTeam": true
+  },
+  "members": [
+    {
+      "memberId": "team-lead@_auto_3213551d0e20441d91ec4ef8fe1a54c1",
+      "name": "team-lead",
+      "role": "Team Lead - coordinates the team and interacts with the user"
+    }
+  ],
+  "isAutoTeam": true
+}

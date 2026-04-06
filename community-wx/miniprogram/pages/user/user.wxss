@@ -1,0 +1,168 @@
+.container {
+  min-height: 100vh;
+  background-color: #F5F7FA;
+  padding-bottom: 120rpx;
+}
+
+.user-card {
+  background-color: #fff;
+  margin-bottom: 20rpx;
+}
+
+.user-bg {
+  height: 200rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.user-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 30rpx 30rpx;
+  margin-top: -80rpx;
+}
+
+.avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  border: 6rpx solid #fff;
+  margin-bottom: 20rpx;
+}
+
+.nickname {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.username {
+  font-size: 26rpx;
+  color: #999;
+  margin-bottom: 20rpx;
+}
+
+.bio {
+  font-size: 28rpx;
+  color: #666;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 20rpx;
+}
+
+.stats {
+  display: flex;
+  gap: 60rpx;
+  margin-bottom: 30rpx;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-item .num {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.stat-item .label {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.action-btn {
+  padding: 16rpx 40rpx;
+  border-radius: 32rpx;
+  font-size: 28rpx;
+  background-color: #667eea;
+  color: #fff;
+  border: none;
+}
+
+.action-btn.following {
+  background-color: #F5F5F5;
+  color: #666;
+}
+
+.action-btn.message-btn {
+  background-color: #fff;
+  color: #667eea;
+  border: 2rpx solid #667eea;
+}
+
+.posts-section {
+  background-color: #fff;
+  padding: 30rpx;
+}
+
+.section-header {
+  margin-bottom: 24rpx;
+}
+
+.section-header .title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.empty,
+.loading {
+  text-align: center;
+  padding: 60rpx 0;
+  color: #999;
+  font-size: 28rpx;
+}
+
+.post-item {
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+
+.post-item:last-child {
+  border-bottom: none;
+}
+
+.post-item .title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.post-item .summary {
+  display: block;
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 12rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.post-item .meta {
+  display: flex;
+  gap: 20rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.load-more {
+  text-align: center;
+  padding: 30rpx;
+  color: #667eea;
+  font-size: 28rpx;
+}

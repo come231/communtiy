@@ -1,0 +1,106 @@
+<view class="container">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading">
+    <text>加载中...</text>
+  </view>
+
+  <block wx:else>
+    <!-- 帖子内容 -->
+    <view class="post-detail">
+      <!-- 用户信息 -->
+      <view class="user-section">
+        <view class="user-info" bindtap="goToUser" data-id="{{post.userId}}">
+          <image class="avatar" src="{{post.authorAvatar || '/assets/default-avatar.png'}}" mode="aspectFill"></image>
+          <view class="user-detail">
+            <text class="username">{{post.isAnonymous ? '匿名用户' : post.authorName}}</text>
+            <text class="time">{{post.createTimeStr}}</text>
+          </view>
+        </view>
+        <button wx:if="{{!isAuthor}}" class="follow-btn {{isFollowing ? 'following' : ''}}" bindtap="toggleFollow">
+          {{isFollowing ? '已关注' : '+ 关注'}}
+        </button>
+      </view>
+
+      <!-- 标题 -->
+      <view class="title-section">
+        <text class="title">{{post.title}}</text>
+        <view class="tags">
+          <text wx:if="{{post.isTop}}" class="tag tag-top">置顶</text>
+          <text wx:if="{{post.isEssence}}" class="tag tag-essence">精华</text>
+          <text wx:if="{{post.sectionName}}" class="tag tag-section">{{post.sectionName}}</text>
+        </view>
+      </view>
+
+      <!-- 正文内容 -->
+      <view class="content-section">
+        <rich-text nodes="{{post.content}}"></rich-text>
+      </view>
+
+      <!-- 封面图 -->
+      <image wx:if="{{post.coverImage}}" class="cover-image" src="{{post.coverImage}}" mode="widthFix"></image>
+
+      <!-- 互动栏 -->
+      <view class="action-bar">
+        <view class="action-item" bindtap="toggleLike">
+          <icon type="{{post.isLiked ? 'success' : 'like'}}" size="18px" color="{{post.isLiked ? '#F56C6C' : '#999'}}"></icon>
+          <text class="{{post.isLiked ? 'liked' : ''}}">{{post.likeCount || 0}}</text>
+        </view>
+        <view class="action-item" bindtap="toggleCollect">
+          <icon type="{{post.isCollected ? 'star' : 'star'}}" size="18px" color="{{post.isCollected ? '#E6A23C' : '#999'}}"></icon>
+          <text class="{{post.isCollected ? 'collected' : ''}}">{{post.collectCount || 0}}</text>
+        </view>
+        <view class="action-item">
+          <icon type="share" size="18px" color="#999"></icon>
+          <text>分享</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 评论列表 -->
+    <view class="comment-section">
+      <view class="section-header">
+        <text class="title">评论 ({{commentCount}})</text>
+      </view>
+
+      <view wx:if="{{comments.length === 0}}" class="empty-comment">
+        <text>暂无评论，快来抢沙发吧~</text>
+      </view>
+
+      <view wx:else class="comment-list">
+        <view wx:for="{{comments}}" wx:key="commentId" class="comment-item">
+          <view class="comment-user" bindtap="goToUser" data-id="{{item.userId}}">
+            <image class="avatar-sm" src="{{item.userAvatar || '/assets/default-avatar.png'}}" mode="aspectFill"></image>
+            <view class="comment-user-info">
+              <text class="name">{{item.userName}}</text>
+              <text class="floor">#{{item.floorNumber}}</text>
+            </view>
+          </view>
+          <view class="comment-content">{{item.content}}</view>
+          <view class="comment-footer">
+            <text class="time">{{item.createTimeStr}}</text>
+            <view class="comment-action" catchtap="toggleCommentLike" data-id="{{item.commentId}}">
+              <icon type="{{item.isLiked ? 'success' : 'like'}}" size="12px" color="{{item.isLiked ? '#F56C6C' : '#999'}}"></icon>
+              <text class="{{item.isLiked ? 'liked' : ''}}">{{item.likeCount || 0}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view wx:if="{{hasMoreComments}}" class="load-more" bindtap="loadMoreComments">
+          <text>加载更多评论</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 底部评论输入 -->
+  <view class="comment-input-bar">
+    <input 
+      class="comment-input" 
+      placeholder="写下你的评论..." 
+      value="{{commentText}}"
+      bindinput="onCommentInput"
+      bindconfirm="submitComment"
+    />
+    <button class="submit-btn" bindtap="submitComment" disabled="{{!commentText}}">发送</button>
+  </view>
+</view>

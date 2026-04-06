@@ -1,0 +1,67 @@
+server:
+  port: 8095
+
+spring:
+  application:
+    name: community-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+    gateway:
+      routes:
+        - id: community-user
+          uri: http://localhost:8096
+          predicates:
+            - Path=/user/**
+        - id: community-community
+          uri: http://localhost:8091
+          predicates:
+            - Path=/posts/**,/comments/**,/sections/**,/topics/**,/votes/**
+        - id: community-interact
+          uri: http://localhost:8093
+          predicates:
+            - Path=/likes/**,/collects/**,/folders/**
+        - id: community-ai
+          uri: http://localhost:8092
+          predicates:
+            - Path=/ai/**
+        - id: community-search
+          uri: http://localhost:8094
+          predicates:
+            - Path=/search/**,/hot-keyword/**
+        - id: community-message
+          uri: http://localhost:8098
+          predicates:
+            - Path=/notice/**,/chat/**
+        - id: community-file
+          uri: http://localhost:8097
+          predicates:
+            - Path=/file/**
+        - id: community-admin
+          uri: http://localhost:8099
+          predicates:
+            - Path=/admin/**,/dashboard/**
+      # ↓↓↓ CORS 修复成正确格式 ↓↓↓
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origin-patterns: "http://localhost:*"
+            allowed-methods: "*"
+            allowed-headers: "*"
+            allow-credentials: true
+            max-age: 3600
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+jwt:
+  secret: community-platform-secret-key-must-be-at-least-256-bits-long-for-hs256
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

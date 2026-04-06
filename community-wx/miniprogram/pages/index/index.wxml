@@ -1,0 +1,83 @@
+<view class="container">
+  <!-- 搜索栏 -->
+  <view class="search-bar" bindtap="goToSearch">
+    <icon type="search" size="32rpx" color="#999"></icon>
+    <text class="search-placeholder">搜索帖子、话题、用户...</text>
+  </view>
+
+  <!-- Tab切换 -->
+  <view class="tabs">
+    <view 
+      wx:for="{{tabs}}" 
+      wx:key="key"
+      class="tab-item {{activeTab === item.key ? 'active' : ''}}"
+      bindtap="switchTab"
+      data-key="{{item.key}}"
+    >
+      {{item.label}}
+    </view>
+  </view>
+
+  <!-- 帖子列表 -->
+  <scroll-view 
+    scroll-y 
+    class="post-list"
+    bindscrolltolower="loadMore"
+    enable-back-to-top
+  >
+    <view 
+      wx:for="{{posts}}" 
+      wx:key="postId"
+      class="post-card"
+      bindtap="goToPost"
+      data-id="{{item.postId}}"
+    >
+      <!-- 用户信息 -->
+      <view class="post-header">
+        <view class="user-info" bindtap="goToUser" data-id="{{item.userId}}">
+          <image class="avatar" src="{{item.authorAvatar || '/assets/default-avatar.png'}}" mode="aspectFill"></image>
+          <view class="user-detail">
+            <text class="username">{{item.isAnonymous ? '匿名用户' : item.authorName}}</text>
+            <text class="time">{{item.createTimeStr}}</text>
+          </view>
+        </view>
+        <view class="tags">
+          <text wx:if="{{item.isTop}}" class="tag tag-top">置顶</text>
+          <text wx:if="{{item.isEssence}}" class="tag tag-essence">精华</text>
+        </view>
+      </view>
+
+      <!-- 帖子内容 -->
+      <view class="post-content">
+        <text class="title">{{item.title}}</text>
+        <text class="summary">{{item.summary}}</text>
+      </view>
+
+      <!-- 封面图 -->
+      <image wx:if="{{item.coverImage}}" class="cover-image" src="{{item.coverImage}}" mode="aspectFill"></image>
+
+      <!-- 互动数据 -->
+      <view class="post-footer">
+        <view class="stat-item">
+          <icon type="eye" size="14px" color="#999"></icon>
+          <text>{{item.viewCount || 0}}</text>
+        </view>
+        <view class="stat-item" catchtap="toggleLike" data-id="{{item.postId}}" data-index="{{index}}">
+          <icon type="{{item.isLiked ? 'success' : 'like'}}" size="14px" color="{{item.isLiked ? '#F56C6C' : '#999'}}"></icon>
+          <text class="{{item.isLiked ? 'liked' : ''}}">{{item.likeCount || 0}}</text>
+        </view>
+        <view class="stat-item" bindtap="goToPost" data-id="{{item.postId}}">
+          <icon type="message" size="14px" color="#999"></icon>
+          <text>{{item.commentCount || 0}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="load-more">
+      <text wx:if="{{loading}}">加载中...</text>
+      <text wx:elif="{{noMore}}">没有更多了</text>
+      <text wx:else bindtap="loadMore">加载更多</text>
+    </view>
+  </scroll-view>
+</view>

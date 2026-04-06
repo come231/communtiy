@@ -1,0 +1,190 @@
+.container {
+  min-height: 100vh;
+  background-color: #F5F7FA;
+  padding-bottom: 120rpx;
+}
+
+.profile-card {
+  background-color: #fff;
+  margin-bottom: 20rpx;
+}
+
+.user-header {
+  position: relative;
+}
+
+.user-bg {
+  height: 200rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.user-content {
+  display: flex;
+  align-items: flex-end;
+  padding: 0 30rpx;
+  margin-top: -80rpx;
+  padding-bottom: 30rpx;
+}
+
+.avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  border: 6rpx solid #fff;
+  margin-right: 24rpx;
+}
+
+.user-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 10rpx;
+}
+
+.nickname {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.username {
+  font-size: 26rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+.edit-btn,
+.follow-btn {
+  padding: 16rpx 32rpx;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  background-color: #409EFF;
+  color: #fff;
+  border: none;
+}
+
+.follow-btn.following {
+  background-color: #F5F5F5;
+  color: #666;
+}
+
+.bio {
+  padding: 0 30rpx 30rpx;
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+}
+
+.stats {
+  display: flex;
+  border-top: 1rpx solid #F5F5F5;
+}
+
+.stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30rpx 0;
+}
+
+.stat-item .num {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.stat-item .label {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+.quick-actions {
+  display: flex;
+  background-color: #fff;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.action-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.action-item image {
+  width: 56rpx;
+  height: 56rpx;
+}
+
+.action-item text {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.menu-list {
+  background-color: #fff;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-icon {
+  width: 44rpx;
+  height: 44rpx;
+  margin-right: 20rpx;
+}
+
+.menu-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.menu-arrow {
+  color: #CCCCCC;
+  font-size: 28rpx;
+}
+
+.not-login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 30rpx;
+  background-color: #fff;
+}
+
+.not-login text {
+  font-size: 28rpx;
+  color: #999;
+  margin-bottom: 30rpx;
+}
+
+.login-btn {
+  padding: 24rpx 80rpx;
+  background-color: #409EFF;
+  color: #fff;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+}
+
+.logout {
+  margin: 40rpx 30rpx;
+  padding: 30rpx;
+  background-color: #fff;
+  border-radius: 16rpx;
+  text-align: center;
+  color: #F56C6C;
+  font-size: 28rpx;
+}

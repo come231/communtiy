@@ -1,0 +1,100 @@
+server:
+  port: 8099
+
+spring:
+  application:
+    name: community-admin
+  profiles:
+    active: dev
+
+  # 主数据源 - 管理员库
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/community_admin?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      connection-timeout: 30000
+
+  # 安全数据源 - 安全库
+  security:
+    datasource:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/community_security?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      username: root
+      password: root
+      type: com.zaxxer.hikari.HikariDataSource
+      hikari:
+        minimum-idle: 3
+        maximum-pool-size: 10
+        idle-timeout: 30000
+        connection-timeout: 30000
+
+  # 内容数据源 - 社区内容库 (帖子、评论等)
+  content:
+    datasource:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/community_content?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      username: root
+      password: root
+      type: com.zaxxer.hikari.HikariDataSource
+      hikari:
+        minimum-idle: 3
+        maximum-pool-size: 10
+        idle-timeout: 30000
+        connection-timeout: 30000
+
+  # Redis配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      database: 2
+      lettuce:
+        pool:
+          max-active: 10
+          max-wait: -1ms
+          min-idle: 5
+          max-idle: 10
+
+  # Nacos注册中心
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: public
+        group: DEFAULT_GROUP
+
+# JWT配置
+jwt:
+  secret: community-platform-secret-key-must-be-at-least-256-bits-long-for-hs256
+  # 访问令牌15分钟
+  access-token-expire: 900000
+  # 刷新令牌3天
+  refresh-token-expire: 259200000
+  # 自动刷新阈值：剩余 <5分钟
+  auto-refresh-threshold: 300000
+
+# MyBatis-Plus配置
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.community.admin.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: assign_id
+      logic-delete-field: deleted
+      logic-not-delete-value: 0
+      logic-delete-value: 1
+
+# 日志级别
+logging:
+  level:
+    com.community.admin.mapper: debug

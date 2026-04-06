@@ -1,0 +1,73 @@
+<view class="container">
+  <!-- Tab切换 -->
+  <view class="tabs">
+    <view 
+      wx:for="{{tabs}}" 
+      wx:key="key"
+      class="tab-item {{activeTab === item.key ? 'active' : ''}}"
+      bindtap="switchTab"
+      data-key="{{item.key}}"
+    >
+      {{item.label}}
+      <view wx:if="{{item.key === 'notice' && unreadCount > 0}}" class="badge">{{unreadCount > 99 ? '99+' : unreadCount}}</view>
+    </view>
+  </view>
+
+  <!-- 通知列表 -->
+  <scroll-view wx:if="{{activeTab === 'notice'}}" scroll-y class="list">
+    <view wx:if="{{notices.length === 0}}" class="empty">
+      <text>暂无通知</text>
+    </view>
+    <view wx:else>
+      <view wx:for="{{notices}}" wx:key="id" class="notice-item {{item.isRead ? '' : 'unread'}}" bindtap="onNoticeClick" data-item="{{item}}">
+        <image class="avatar" src="{{item.fromUserAvatar || '/assets/default-avatar.png'}}" mode="aspectFill"></image>
+        <view class="content">
+          <view class="header">
+            <text class="title">{{item.title}}</text>
+            <text class="time">{{item.createTimeStr}}</text>
+          </view>
+          <text class="desc">{{item.content}}</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 私信列表 -->
+  <scroll-view wx:if="{{activeTab === 'chat'}}" scroll-y class="list">
+    <view wx:if="{{conversations.length === 0}}" class="empty">
+      <text>暂无私信</text>
+    </view>
+    <view wx:else>
+      <view wx:for="{{conversations}}" wx:key="userId" class="conversation-item" bindtap="openChat" data-user="{{item}}">
+        <image class="avatar" src="{{item.userAvatar || '/assets/default-avatar.png'}}" mode="aspectFill"></image>
+        <view class="info">
+          <view class="header">
+            <text class="name">{{item.userName}}</text>
+            <text class="time">{{item.lastTimeStr}}</text>
+          </view>
+          <text class="last-message">{{item.lastMessage}}</text>
+        </view>
+        <view wx:if="{{item.unreadCount > 0}}" class="unread-badge">{{item.unreadCount > 99 ? '99+' : item.unreadCount}}</view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 系统通知 -->
+  <scroll-view wx:if="{{activeTab === 'system'}}" scroll-y class="list">
+    <view wx:if="{{systemNotices.length === 0}}" class="empty">
+      <text>暂无系统通知</text>
+    </view>
+    <view wx:else>
+      <view wx:for="{{systemNotices}}" wx:key="id" class="notice-item">
+        <image class="avatar system-avatar" src="/assets/icons/system.png" mode="aspectFit"></image>
+        <view class="content">
+          <view class="header">
+            <text class="title">{{item.title}}</text>
+            <text class="time">{{item.createTimeStr}}</text>
+          </view>
+          <text class="desc">{{item.content}}</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>
