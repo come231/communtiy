@@ -29,7 +29,8 @@
                 ]">
                 {{ isFollowed ? '已关注' : '+ 关注' }}
               </button>
-              <button v-if="!isMe" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm cursor-pointer transition-colors">
+              <button v-if="!isMe" @click="sendMessage"
+                class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 text-sm cursor-pointer transition-colors">
                 <Mail class="w-4 h-4 inline mr-1" /> 私信
               </button>
               <router-link v-if="isMe" to="/profile"
@@ -198,16 +199,24 @@ function formatTime(dateStr: string): string {
 
 async function toggleFollow() {
   if (isFollowed.value) {
-    await userApi.unfollow(userId.value)
-    isFollowed.value = false
-    userInfo.followersCount = (userInfo.followersCount || 0) - 1
-    ElMessage.success('已取消关注')
+    try {
+      await userApi.unfollow(userId.value)
+      isFollowed.value = false
+      userInfo.followersCount = (userInfo.followersCount || 0) - 1
+      ElMessage.success('已取消关注')
+    } catch { /* handled */ }
   } else {
-    await userApi.follow(userId.value)
-    isFollowed.value = true
-    userInfo.followersCount = (userInfo.followersCount || 0) + 1
-    ElMessage.success('关注成功')
+    try {
+      await userApi.follow(userId.value)
+      isFollowed.value = true
+      userInfo.followersCount = (userInfo.followersCount || 0) + 1
+      ElMessage.success('关注成功')
+    } catch { /* handled */ }
   }
+}
+
+function sendMessage() {
+  router.push(`/message?toUserId=${userId.value}&toNickName=${encodeURIComponent(userInfo.nickname || userInfo.username)}`)
 }
 
 function showFollowModal(type: string) {

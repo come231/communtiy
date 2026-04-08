@@ -6,6 +6,7 @@ import com.community.common.result.PageResult;
 import com.community.common.result.Result;
 import com.community.common.util.ContextHolder;
 import com.community.user.dto.*;
+import com.community.user.entity.User;
 import com.community.user.service.CheckinService;
 import com.community.user.service.FollowService;
 import com.community.user.service.UserService;
@@ -54,6 +55,12 @@ public class UserController {
         Long userId = ContextHolder.getUserId();
         userService.logout(userId, token);
         return Result.success();
+    }
+
+    @GetMapping("/infoById")
+    @Operation(summary = "获取用户信息", description = "根据用户ID获取用户详细信息")
+    public Result<Map<String,Object>> getUserInfoById(@Parameter(description = "用户ID") @RequestParam Long userId) {
+        return Result.success(userService.getUserInfoById(userId));
     }
 
     @GetMapping("/info")

@@ -60,8 +60,8 @@
           <div class="flex-1 overflow-y-auto">
             <div
               v-for="conv in filteredConversations"
-              :key="conv.userId"
-              :class="['flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors border-l-2', activeConv?.userId === conv.userId ? 'bg-blue-50 border-primary' : 'border-transparent']"
+              :key="conv.otherUserId"
+              :class="['flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors border-l-2', activeConv?.otherUserId === conv.otherUserId ? 'bg-blue-50 border-primary' : 'border-transparent']"
               @click="openConversation(conv)"
             >
               <div class="relative shrink-0">
@@ -70,12 +70,12 @@
               </div>
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between">
-                  <span class="text-sm font-medium text-gray-800 truncate">{{ conv.nickname }}</span>
+                  <span class="text-sm font-medium text-gray-800 truncate">{{ conv.nickName }}</span>
                   <span class="text-xs text-gray-400 shrink-0 ml-2">{{ formatMsgTime(conv.lastTime) }}</span>
                 </div>
                 <div class="flex items-center justify-between mt-0.5">
                   <p class="text-xs text-gray-500 truncate">{{ conv.lastMessage }}</p>
-                  <span v-if="conv.unread > 0" class="ml-2 text-xs bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center shrink-0">{{ conv.unread > 9 ? '9+' : conv.unread }}</span>
+                  <span v-if="conv.unreadCount > 0" class="ml-2 text-xs bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center shrink-0">{{ conv.unreadCount > 9 ? '9+' : conv.unreadCount }}</span>
                 </div>
               </div>
             </div>
@@ -92,7 +92,7 @@
           <template v-if="activeConv">
             <div class="h-14 border-b border-gray-100 flex items-center px-5 gap-3">
               <img :src="activeConv.avatar || defaultAvatar" class="w-8 h-8 rounded-full object-cover" alt="" />
-              <span class="font-medium text-gray-800 text-sm">{{ activeConv.nickname }}</span>
+              <span class="font-medium text-gray-800 text-sm">{{ activeConv.nickName }}</span>
               <span v-if="activeConv.online" class="text-xs text-green-500">在线</span>
             </div>
 
@@ -169,17 +169,19 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { Bell, Heart, MessageSquare, Star, UserPlus, Share2, Info, CheckCircle, AlertCircle } from 'lucide-vue-next'
 import { noticeApi, messageApi } from '../../../api'
 import { useUserStore } from '../../../store/user'
 import type { Notice, Conversation } from '../../../types'
 
+const route = useRoute()
 const userStore = useUserStore()
 const defaultAvatar = 'https://placehold.co/80x80/E8F3FF/409EFF?text=U'
 
 const tabs = computed(() => [
   { key: 'notice', label: '通知', count: notices.value.filter(n => !n.isRead).length },
-  { key: 'message', label: '私信', count: conversations.value.filter(c => (c.unread || 0) > 0).reduce((sum, c) => sum + (c.unread || 0), 0) },
+  { key: 'message', label: '私信', count: conversations.value.filter(c => (c.unreadCount || 0) > 0).reduce((sum, c) => sum + (c.unreadCount || 0), 0) },
   { key: 'system', label: '系统通知' },
 ])
 
@@ -209,13 +211,42 @@ const systemNotices = ref([
 
 const filteredConversations = computed(() => {
   if (!searchKeyword.value.trim()) return conversations.value
-  return conversations.value.filter(c => (c.nickname || c.userName || '').includes(searchKeyword.value.trim()))
+  return conversations.value.filter(c => (c.nickName || '').includes(searchKeyword.value.trim()))
 })
 
-onMounted(() => {
+onMounted(async () => {
   if (userStore.isLoggedIn) {
-    loadNotices()
-    loadConversations()
+    await Promise.all([loadNotices(), loadConversations()])
+    // 支持从UserProfile通过URL参数跳转到指定会话
+    const toUserId = route.query.toUserId
+    if (toUserId) {
+      const toNickName = route.query.toNickName as string || ''
+      currentTab.value = 'message'
+      // 如果会话列表中已有该用户，直接打开；否则等待列表加载完再打开
+      const existing = conversations.value.find(c => c.otherUserId === Number(toUserId))
+      if (existing) {
+        openConversation(existing)
+      } else {
+        // 等一会再尝试（会话列表可能还在加载）
+        setTimeout(() => {
+          const conv = conversations.value.find(c => c.otherUserId === Number(toUserId))
+          if (conv) {
+            openConversation(conv)
+          } else {
+            // 会话列表中没有，手动创建一个虚拟会话
+            conversations.value.unshift({
+              otherUserId: Number(toUserId),
+              nickName: toNickName || `用户${toUserId}`,
+              avatar: '',
+              lastMessage: '',
+              lastTime: new Date().toISOString(),
+              unreadCount: 0,
+            })
+            openConversation(conversations.value[0])
+          }
+        }, 500)
+      }
+    }
   }
 })
 
@@ -237,13 +268,20 @@ async function loadConversations() {
     console.error('加载会话列表失败', e)
   }
 }
-
+// 加固版 openConversation
 async function openConversation(conv: Conversation) {
+  // ✅ 保险：没有 userId 绝对不发请求
+  if (!conv || !conv.otherUserId) {
+    messages.value = []
+    return
+  }
+
   activeConv.value = conv
-  conv.unread = 0
-  // 加载聊天记录
+  conv.unreadCount = 0
+
   try {
-    const res: any = await messageApi.history(conv.userId, 1, 50)
+    // ✅ 这里绝对不会再传空
+    const res: any = await messageApi.history(conv.otherUserId, 1, 50)
     messages.value = (res?.records || []).map((m: any) => ({
       ...m,
       fromSelf: String(m.fromUserId) === String(userStore.userId),
@@ -251,6 +289,7 @@ async function openConversation(conv: Conversation) {
   } catch (e) {
     messages.value = []
   }
+
   nextTick(() => scrollToBottom())
 }
 
@@ -259,7 +298,7 @@ async function sendMessage() {
   sending.value = true
   try {
     await messageApi.send({
-      toUserId: activeConv.value.userId,
+      toUserId: activeConv.value.otherUserId,
       content: inputMessage.value.trim(),
     })
     messages.value.push({
@@ -324,16 +363,16 @@ function formatMsgTime(time: string | number): string {
   return `${d.getMonth() + 1}/${d.getDate()}`
 }
 
-function getNoticeIcon(type: string) {
-  const icons: Record<string, any> = { like: Heart, comment: MessageSquare, follow: UserPlus, collect: Star, system: Bell }
+function getNoticeIcon(type: number) {
+  const icons: Record<number, any> = { 1: Heart, 2: MessageSquare, 3: UserPlus, 4: Star, 5: Bell }
   return icons[type] || Bell
 }
-function getNoticeIconBg(type: string) {
-  const bgs: Record<string, string> = { like: 'bg-red-50', comment: 'bg-blue-50', follow: 'bg-green-50', collect: 'bg-yellow-50', system: 'bg-purple-50' }
+function getNoticeIconBg(type: number) {
+  const bgs: Record<number, string> = { 1: 'bg-red-50', 2: 'bg-blue-50', 3: 'bg-green-50', 4: 'bg-yellow-50', 5: 'bg-purple-50' }
   return bgs[type] || 'bg-gray-50'
 }
-function getNoticeIconColor(type: string) {
-  const colors: Record<string, string> = { like: 'text-red-500', comment: 'text-blue-500', follow: 'text-green-500', collect: 'text-yellow-600', system: 'text-purple-500' }
+function getNoticeIconColor(type: number) {
+  const colors: Record<number, string> = { 1: 'text-red-500', 2: 'text-blue-500', 3: 'text-green-500', 4: 'text-yellow-600', 5: 'text-purple-500' }
   return colors[type] || 'text-gray-500'
 }
 

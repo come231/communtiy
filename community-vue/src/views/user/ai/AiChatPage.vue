@@ -14,7 +14,7 @@
 
       <!-- 历史记录 -->
       <div class="flex-1 overflow-y-auto p-2 space-y-0.5">
-        <p class="px-3 pt-2 pb-1 text-xs text-gray-400 uppercase tracking-wider font-medium">历史记录</p>
+        <p class="px-3 pt-2 pb-1 text-xs text-gray-400 uppercase tracking-wider font-medium">历史会话</p>
         <button
           v-for="chat in chatHistory"
           :key="chat.id"
@@ -39,7 +39,7 @@
           <button
             v-for="feature in aiFeatures" :key="feature.name"
             class="flex items-center gap-1.5 px-2 py-2 rounded-lg text-xs text-gray-600 hover:bg-blue-50 hover:text-primary transition-colors"
-            @click="useFeature(feature.prompt)"
+            @click="toggleFeature(feature)"
           >
             <component :is="feature.icon" :class="'w-3.5 h-3.5'" />
             {{ feature.name }}
@@ -132,6 +132,19 @@
       <!-- 输入区域 -->
       <div class="border-t border-gray-200 p-4 shrink-0">
         <div class="max-w-4xl mx-auto">
+          
+          <!-- 已选角色标签栏 -->
+          <div v-if="selectedFeatures.length > 0" class="flex flex-wrap gap-2 mb-3">
+            <span
+              v-for="f in selectedFeatures"
+              :key="f.name"
+              class="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-xs"
+            >
+              {{ f.name }}
+              <button @click="removeFeature(f)" class="ml-1 text-blue-600 hover:text-blue-900">×</button>
+            </span>
+          </div>
+
           <div class="flex items-end gap-3 bg-gray-50 rounded-2xl border border-gray-200 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
             <textarea
               ref="inputRef"
@@ -172,6 +185,11 @@ import { aiApi } from '@/api'
 
 interface ChatMsg { id: number; role: 'user' | 'assistant'; content: string; createTime: number }
 interface ChatItem { id: number; title: string; messages: ChatMsg[]; sessionId?: string }
+interface Feature {
+  name: string
+  icon: any
+  prompt: string
+}
 
 const inputRef = ref<HTMLTextAreaElement>()
 const chatContainerRef = ref<HTMLElement>()
@@ -181,16 +199,18 @@ const activeChatId = ref<number | null>(null)
 const currentSessionId = ref<string | null>(null)
 
 const messages = ref<ChatMsg[]>([])
-
 const chatHistory = ref<ChatItem[]>([])
 
+// 选中的功能角色
+const selectedFeatures = ref<Feature[]>([])
+
 const aiFeatures = [
-  { name: '写作助手', icon: PenTool, prompt: '帮我写一篇关于技术分享的文章大纲' },
-  { name: '代码审查', icon: Code, prompt: '帮我检查以下代码的问题：\n\n' },
-  { name: '内容总结', icon: FileText, prompt: '请总结以下文章的核心观点：\n\n' },
-  { name: '文章润色', icon: Wand2, prompt: '请润色以下文字，使其更加专业流畅：\n\n' },
-  { name: '话题推荐', icon: Hash, prompt: '为我的社区推荐一些热门技术话题' },
-  { name: '智能搜索', icon: Search, prompt: '搜索关于微服务架构的最佳实践' },
+  { name: '写作助手', icon: PenTool, prompt: '你是一名优秀的作家，非常擅长写作' },
+  { name: '代码审查', icon: Code, prompt: '你是一名资深的程序员，可以完成复杂的代码审查工作' },
+  { name: '内容总结', icon: FileText, prompt: '你是一名记者，非常擅长内容总结' },
+  { name: '文章润色', icon: Wand2, prompt: '你是一名文学家，非常擅长润色文章，使其更加专业流畅' },
+  { name: '话题推荐', icon: Hash, prompt: '你是一名记者，非常了解当今的局势，可以推荐与当今紧密相关的话题' },
+  { name: '智能搜索', icon: Search, prompt: '你是一本百科全书，什么都知道都难不到你' },
 ]
 
 const suggestions = [
@@ -200,18 +220,50 @@ const suggestions = [
   { label: '推荐话题', desc: '获取热门话题灵感', icon: BookOpen, text: '推荐一些热门话题' },
 ]
 
-// 加载会话历史
+// 切换功能（添加/移除）
+function toggleFeature(feature: Feature) {
+  const index = selectedFeatures.value.findIndex(f => f.name === feature.name)
+  if (index >= 0) {
+    selectedFeatures.value.splice(index, 1)
+  } else {
+    selectedFeatures.value.push(feature)
+  }
+}
+
+// 移除单个功能
+function removeFeature(feature: Feature) {
+  selectedFeatures.value = selectedFeatures.value.filter(f => f.name !== feature.name)
+}
+
+// 拼接所有角色提示词
+function buildSystemPrompt() {
+  if (selectedFeatures.value.length === 0) return ''
+  return selectedFeatures.value.map(f => f.prompt).join('。') + '。'
+}
+
+// 加载会话列表
 async function loadChatHistory() {
   try {
     const res = await aiApi.chats()
-    chatHistory.value = res.map((item: any, index: number) => ({
-      id: index + 1,
-      title: item.session_id || `会话${index + 1}`,
-      messages: [],
-      sessionId: item.session_id
-    }))
+    const list: ChatItem[] = []
+    for (const [index, item] of res.entries()) {
+      const sessionId = item.session_id
+      let title = "新对话"
+      try {
+        const msgRes = await aiApi.messages(sessionId)
+        const records = msgRes.records || msgRes
+        const firstMsg = records.find((m: any) => m.role === 'user')
+        if (firstMsg) {
+          title = firstMsg.content.length > 20
+            ? firstMsg.content.slice(0, 20) + "..."
+            : firstMsg.content
+        }
+      } catch (e) {}
+      list.push({ id: index + 1, title, sessionId, messages: [] })
+    }
+    chatHistory.value = list
   } catch (e) {
-    console.error('加载会话历史失败', e)
+    console.error('加载会话失败', e)
   }
 }
 
@@ -219,18 +271,19 @@ function newChat() {
   messages.value = []
   activeChatId.value = null
   currentSessionId.value = null
-  setTimeout(() => (inputRef.value as HTMLTextAreaElement)?.focus(), 100)
+  selectedFeatures.value = []
+  setTimeout(() => inputRef.value?.focus(), 100)
 }
 
 async function loadChat(chat: ChatItem) {
   activeChatId.value = chat.id
   currentSessionId.value = chat.sessionId || null
-  
   if (chat.sessionId) {
     try {
       const res = await aiApi.messages(chat.sessionId)
-      messages.value = res.map((item: any, index: number) => ({
-        id: index + 1,
+      const messageList = res.records || res
+      messages.value = messageList.map((item: any) => ({
+        id: item.id || Date.now(),
         role: item.role === 'user' ? 'user' : 'assistant',
         content: item.content,
         createTime: new Date(item.createTime).getTime()
@@ -242,61 +295,67 @@ async function loadChat(chat: ChatItem) {
   scrollToBottom()
 }
 
-async function deleteChat(id: number) {
-  const idx = chatHistory.value.findIndex(c => c.id === id)
-  if (idx > -1) {
-    const chat = chatHistory.value[idx]
-    if (chat.sessionId) {
-      try {
-        await aiApi.deleteChat(parseInt(chat.sessionId))
-      } catch (e) {
-        console.error('删除会话失败', e)
-      }
-    }
-    chatHistory.value.splice(idx, 1)
+async function deleteChat(chatId: number) {
+  const find = chatHistory.value.find(i => i.id === chatId)
+  if (!find) return
+  try {
+    await aiApi.deleteChat(find.sessionId)
+    chatHistory.value = chatHistory.value.filter(i => i.id !== chatId)
+    if (activeChatId.value === chatId) newChat()
+  } catch (err) {
+    console.error('删除失败', err)
   }
-  if (activeChatId.value === id) newChat()
 }
 
 async function send() {
   if (!inputMessage.value.trim() || isLoading.value) return
 
+  // 拼接角色 + 用户问题
+  const systemPrompt = buildSystemPrompt()
+  const userInput = systemPrompt + inputMessage.value.trim()
+
   const userMsg: ChatMsg = {
     id: Date.now(),
     role: 'user',
-    content: inputMessage.value.trim(),
+    content: inputMessage.value.trim(), // 输入框内容只显示用户输入
     createTime: Date.now(),
   }
   messages.value.push(userMsg)
-  const userInput = inputMessage.value.trim()
   inputMessage.value = ''
   scrollToBottom()
 
-  // 调用真实API
   isLoading.value = true
   try {
     const response = await aiApi.send({
-      sessionId: currentSessionId.value ? parseInt(currentSessionId.value) : undefined,
+      sessionId: currentSessionId.value || undefined,
       content: userInput,
       type: 'chat'
     })
-    
-    const aiResponse: ChatMsg = {
-      id: Date.now() + 1,
+
+    const aiMsg: ChatMsg = {
+      id: Date.now(),
       role: 'assistant',
-      content: response.data || response,
+      content: (response as any).reply || response,
       createTime: Date.now(),
     }
-    messages.value.push(aiResponse)
-    updateChatTitle(userInput)
-  } catch (error: any) {
-    const errorMsg: ChatMsg = {
-      id: Date.now() + 1,
+    messages.value.push(aiMsg)
+
+    if (!currentSessionId.value) {
+      const newSessionId = (response as any).sessionId
+      const title = userMsg.content.length > 20 ? userMsg.content.slice(0, 20) + '...' : userMsg.content
+      const newChat: ChatItem = { id: Date.now(), title, sessionId: newSessionId }
+      chatHistory.value.unshift(newChat)
+      activeChatId.value = newChat.id
+      currentSessionId.value = newSessionId
+    }
+
+  } catch (error) {
+    messages.value.push({
+      id: Date.now(),
       role: 'assistant',
       content: '抱歉，AI服务暂时不可用，请稍后重试。',
       createTime: Date.now(),
-    }
-    messages.value.push(errorMsg)
+    })
   } finally {
     isLoading.value = false
     scrollToBottom()
@@ -312,34 +371,6 @@ function useFeature(prompt: string) {
   inputMessage.value = prompt
   newChat()
   nextTick(() => send())
-}
-
-function updateChatTitle(firstMsg: string) {
-  if (activeChatId.value) return
-  const title = firstMsg.length > 20 ? firstMsg.slice(0, 20) + '...' : firstMsg
-  
-  // 创建新会话
-  aiApi.createChat(title).then((res) => {
-    const newSessionId = res.data || res
-    const newChatItem: ChatItem = {
-      id: Date.now(),
-      title,
-      messages: [...messages.value],
-      sessionId: newSessionId
-    }
-    chatHistory.value.unshift(newChatItem)
-    activeChatId.value = newChatItem.id
-    currentSessionId.value = newSessionId
-  }).catch(() => {
-    // 如果创建会话失败，仍然保存本地
-    const newChatItem: ChatItem = {
-      id: Date.now(),
-      title,
-      messages: [...messages.value],
-    }
-    chatHistory.value.unshift(newChatItem)
-    activeChatId.value = newChatItem.id
-  })
 }
 
 function scrollToBottom() {
@@ -370,6 +401,5 @@ function renderMarkdown(text: string): string {
     .replace(/\n/g, '<br/>')
 }
 
-// 页面加载时获取历史记录
 loadChatHistory()
 </script>

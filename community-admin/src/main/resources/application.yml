@@ -7,10 +7,10 @@ spring:
   profiles:
     active: dev
 
-  # 主数据源 - 管理员库
+  # 主数据源 - 安全库
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/community_admin?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/community_security?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
     password: root
     type: com.zaxxer.hikari.HikariDataSource
@@ -20,25 +20,11 @@ spring:
       idle-timeout: 30000
       connection-timeout: 30000
 
-  # 安全数据源 - 安全库
-  security:
+  # 管理员数据源 - 管理员库
+  admin:
     datasource:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://localhost:3306/community_security?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-      username: root
-      password: root
-      type: com.zaxxer.hikari.HikariDataSource
-      hikari:
-        minimum-idle: 3
-        maximum-pool-size: 10
-        idle-timeout: 30000
-        connection-timeout: 30000
-
-  # 内容数据源 - 社区内容库 (帖子、评论等)
-  content:
-    datasource:
-      driver-class-name: com.mysql.cj.jdbc.Driver
-      url: jdbc:mysql://localhost:3306/community_content?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      url: jdbc:mysql://localhost:3306/community_admin?useUnicode=true&characterEncoding=UTF-8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       username: root
       password: root
       type: com.zaxxer.hikari.HikariDataSource
@@ -73,8 +59,8 @@ spring:
 # JWT配置
 jwt:
   secret: community-platform-secret-key-must-be-at-least-256-bits-long-for-hs256
-  # 访问令牌15分钟
-  access-token-expire: 900000
+  # 访问令牌30分钟
+  access-token-expire: 1800000
   # 刷新令牌3天
   refresh-token-expire: 259200000
   # 自动刷新阈值：剩余 <5分钟

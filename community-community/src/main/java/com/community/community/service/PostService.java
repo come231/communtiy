@@ -323,4 +323,61 @@ public class PostService {
         vo.setIsLiked(isLiked);
         return vo;
     }
+
+    // ==================== 管理员方法 ====================
+
+    /**
+     * 审核帖子（管理员权限）
+     */
+    public void reviewPost(Long postId, Integer status, String reason) {
+        Post post = postMapper.selectById(postId);
+        if (post == null) throw new BusinessException(ResultCode.POST_NOT_FOUND);
+        
+        post.setStatus(status);
+        post.setUpdateTime(LocalDateTime.now());
+        postMapper.updateById(post);
+    }
+
+    /**
+     * 设置置顶（管理员权限）
+     */
+    public void setTop(Long postId, boolean isTop) {
+        Post post = postMapper.selectById(postId);
+        if (post == null) throw new BusinessException(ResultCode.POST_NOT_FOUND);
+        
+        post.setIsTop(isTop ? 1 : 0);
+        post.setUpdateTime(LocalDateTime.now());
+        postMapper.updateById(post);
+    }
+
+    /**
+     * 设置精华（管理员权限）
+     */
+    public void setEssence(Long postId, boolean isEssence) {
+        Post post = postMapper.selectById(postId);
+        if (post == null) throw new BusinessException(ResultCode.POST_NOT_FOUND);
+        
+        post.setIsEssence(isEssence ? 1 : 0);
+        post.setUpdateTime(LocalDateTime.now());
+        postMapper.updateById(post);
+    }
+
+    /**
+     * 删除帖子（管理员权限）
+     */
+    public void deletePost(Long postId) {
+        Post post = postMapper.selectById(postId);
+        if (post == null) throw new BusinessException(ResultCode.POST_NOT_FOUND);
+        
+        post.setStatus(CommonConstant.POST_STATUS_DELETED);
+        post.setUpdateTime(LocalDateTime.now());
+        postMapper.updateById(post);
+    }
+
+    /**
+     * 获取帖子数量
+     */
+    public long count() {
+        return postMapper.selectCount(null);
+    }
 }

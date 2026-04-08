@@ -335,7 +335,17 @@ async function handleLike() {
       await interactApi.like(1, p.id)
       p.isLiked = true; p.likeCount++
     }
-  } catch {}
+  } catch (e: any) {
+    // 已点赞/已收藏等业务异常：回滚UI状态
+    const errMsg = e?.message || ''
+    if (errMsg.includes('已点赞') || errMsg.includes('2008')) {
+      p.isLiked = true; p.likeCount++
+    } else if (errMsg.includes('未点赞') || errMsg.includes('2009')) {
+      p.isLiked = false; p.likeCount--
+    } else {
+      console.error('操作失败', e)
+    }
+  }
 }
 
 async function handleCollect() {
@@ -351,7 +361,14 @@ async function handleCollect() {
       p.isCollected = true; p.collectCount++
       ElMessage.success('收藏成功')
     }
-  } catch {}
+  } catch (e: any) {
+    const errMsg = e?.message || ''
+    if (errMsg.includes('已收藏') || errMsg.includes('2010')) {
+      p.isCollected = true; p.collectCount++
+    } else {
+      console.error('操作失败', e)
+    }
+  }
 }
 
 async function handleFollowAuthor() {
@@ -365,7 +382,9 @@ async function handleFollowAuthor() {
       await userApi.follow(authorId)
       isFollowing.value = true; ElMessage.success('关注成功')
     }
-  } catch {}
+  } catch (e: any) {
+    console.error('操作失败', e)
+  }
 }
 
 async function submitComment() {
@@ -377,7 +396,9 @@ async function submitComment() {
     commentText.value = ''
     ElMessage.success('评论成功')
     loadComments()
-  } catch {}
+  } catch (e: any) {
+    console.error('评论失败', e)
+  }
   finally { submitting.value = false }
 }
 
@@ -396,7 +417,9 @@ async function submitReply(parent: Comment, reply?: Comment) {
     replyToId.value = 0; replyText.value = ''
     ElMessage.success('回复成功')
     loadComments()
-  } catch {}
+  } catch (e: any) {
+    console.error('回复失败', e)
+  }
 }
 
 async function handleLikeComment(comment: Comment) {
@@ -418,8 +441,14 @@ async function handleLikeComment(comment: Comment) {
       comment.isLiked = true
       comment.likeCount = (comment.likeCount || 0) + 1
     }
-  } catch (e) {
-    console.error('点赞失败', e)
+  } catch (e: any) {
+    const errMsg = e?.message || ''
+    if (errMsg.includes('已点赞') || errMsg.includes('2008')) {
+      comment.isLiked = true
+      comment.likeCount = (comment.likeCount || 0) + 1
+    } else {
+      console.error('点赞失败', e)
+    }
   }
 }
 
@@ -433,7 +462,11 @@ async function deleteComment(id: number) {
     await commentApi.delete(id)
     ElMessage.success('删除成功')
     loadComments()
-  } catch {}
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      console.error('删除评论失败', e)
+    }
+  }
 }
 
 async function handleDelete() {
@@ -442,6 +475,10 @@ async function handleDelete() {
     await postApi.delete(postId.value)
     ElMessage.success('删除成功')
     router.push('/home')
-  } catch {}
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      console.error('删除帖子失败', e)
+    }
+  }
 }
 </script>

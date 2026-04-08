@@ -30,7 +30,7 @@ public class SysConfigController {
 
     @PutMapping("/{id}")
     @Operation(summary = "更新配置", description = "更新指定配置项")
-    public Result<Void> updateConfig(@PathVariable String id,
+    public Result<Void> updateConfig(@PathVariable Long id,
                                      @RequestBody Map<String, Object> params) {
         String configValue = (String) params.get("configValue");
         sysConfigService.updateConfig(id, configValue);

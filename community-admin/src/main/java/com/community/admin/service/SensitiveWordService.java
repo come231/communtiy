@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.community.admin.entity.SensitiveWord;
-import com.community.admin.mapper.SensitiveWordMapper;
+import com.community.admin.mapper.security.SensitiveWordMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +16,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class SensitiveWordService extends ServiceImpl<SensitiveWordMapper, SensitiveWord> {
+public class SensitiveWordService {
 
     private final SensitiveWordMapper sensitiveWordMapper;
 

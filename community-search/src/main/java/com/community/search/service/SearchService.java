@@ -50,6 +50,7 @@ public class SearchService {
         // 先尝试ES搜索
         try {
             PageResult<PostSearchDTO> esResult = searchFromEs(keyword, page, size);
+            log.warn("ES搜索成功: {}");
             if (esResult != null) {
                 return esResult;
             }

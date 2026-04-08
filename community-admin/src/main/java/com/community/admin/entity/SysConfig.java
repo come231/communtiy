@@ -10,11 +10,14 @@ import java.time.LocalDateTime;
 @TableName("sys_config")
 public class SysConfig {
 
-    @TableId
-    private String id;
+    @TableId(type = com.baomidou.mybatisplus.annotation.IdType.AUTO)
+    private Long id;
+    private String configKey;
     private String configValue;
-    private String configName;
-    private String remark;
+    private String configType;
+    private String groupKey;
+    private String description;
+    private Integer status;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

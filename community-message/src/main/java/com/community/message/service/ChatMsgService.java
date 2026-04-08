@@ -6,6 +6,7 @@ import com.community.common.constant.RedisKeyConstant;
 import com.community.common.result.PageResult;
 import com.community.common.util.ContextHolder;
 import com.community.message.entity.ChatMsg;
+import com.community.message.feign.UserFeignClient;
 import com.community.message.mapper.ChatMsgMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +27,7 @@ public class ChatMsgService {
 
     private final ChatMsgMapper chatMsgMapper;
     private final StringRedisTemplate redisTemplate;
-
+    private final UserFeignClient userFeignClient;
     /**
      * 获取与某用户的聊天记录(分页)
      */
@@ -35,6 +36,7 @@ public class ChatMsgService {
         if (otherUserId == null) {
             throw new IllegalArgumentException("对方用户ID不能为空");
         }
+        markChatRead(otherUserId);
         Page<ChatMsg> pageParam = new Page<>(page, size);
         LambdaQueryWrapper<ChatMsg> wrapper = new LambdaQueryWrapper<>();
         wrapper.and(w -> w.eq(ChatMsg::getFromUserId, currentUserId).eq(ChatMsg::getToUserId, otherUserId))
@@ -81,6 +83,8 @@ public class ChatMsgService {
                     map.put("lastMessage", lastMsg != null ? lastMsg.getContent() : "");
                     map.put("lastTime", lastMsg != null ? lastMsg.getCreateTime() : null);
                     map.put("unreadCount", unreadCount);
+                    map.put("nickName",userFeignClient.getUserInfo(otherId).getData().get("nickname"));
+                    map.put("avatar",userFeignClient.getUserInfo(otherId).getData().get("avatar"));
                     return map;
                 }).collect(Collectors.toList());
     }

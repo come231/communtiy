@@ -37,8 +37,8 @@ public class SecurityConfig {
                         // 你的业务接口放行
                         .requestMatchers(
                                 "/user/login", "/user/register", "/user/refresh", "/user/search",
-                                "/user/info", "/user/my", "/user/following/**", "/user/followers/**", "/user/isFollowing/**",
-                                "/user/checkin", "/user/checkin/status", "/user/update"
+                                "/user/info", "/user/infoById","/user/my", "/user/following/**", "/user/followers/**", "/user/isFollowing/**",
+                                "/user/checkin", "/user/checkin/status", "/user/update","/user/admin/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 );

@@ -28,6 +28,7 @@ public class AiChatController {
     @Operation(summary = "发送消息", description = "发送消息给AI并获取回复")
     public Result<ChatResponse> chat(@RequestBody ChatRequest request) {
         Long userId = ContextHolder.getUserId();
+        System.out.println("userId: " + userId);
         ChatResponse response = aiChatService.chat(userId, request);
         return Result.success(response);
     }

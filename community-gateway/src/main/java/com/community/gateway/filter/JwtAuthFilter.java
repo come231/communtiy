@@ -36,23 +36,26 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
     private static final Set<String> IGNORE_PATHS = Set.of(
             "/user/login", "/user/register", "/user/refresh", "/user/search",
-            "/user/info", "/user/my", "/user/update",
+            "/user/info", "/user/my", "/user/update","/user/infoById",
             "/user/following/**", "/user/followers/**", "/user/isFollowing/**",
             "/user/checkin", "/user/checkin/status",
-            "/admin/**",
+            "/user/admin/**",
+            "/posts/admin/**",
+            "/admin/**","/dashboard/**",
             "/search/hot-keywords",
             "/file/upload", "/file/download/**",
-            "/sections", "/topics/hot",
+            "/sections", "/sections/**", "/topics/hot", "/topics", "/topics/**",
             "/posts/list", "/posts/hot", "/posts/detail/**",
             "/comments",
             "/hot-keyword/**",
             // AI chat endpoints
-            "/ai/chat", "/ai/chat/sessions", "/ai/chat/session/**", "/ai/chat/history", "/ai/chat/new-session",
-            "/ai/write/**", "/ai/review/**",
+            "/ai/write/**", "/ai/review/**","/ai/admin/**",
             // Notice endpoints
             "/notice/list", "/notice/unread-count",
             // Chat endpoints
-            "/chat/users", "/chat/list", "/chat/unread-count"
+            "/chat/users", "/chat/list", "/chat/unread-count",
+            // Interact stats
+            "/interact/stats"
     );
 
     private static final Set<String> AUTH_REQUIRED_PATHS = Set.of(
@@ -76,19 +79,27 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getPath().value();
-        log.info("Gateway request: {}", path);
-        log.info("网关收到请求：method={},path={}",
-        exchange.getRequest().getMethod(),
-        exchange.getRequest().getPath().value());
-// ==============================================
-        // 🔴 强制放行 OPTIONS 预检请求（解决跨域核心）
-        // ==============================================
+
+        // 强制放行 OPTIONS 预检请求（解决跨域核心）
         if (exchange.getRequest().getMethod() == org.springframework.http.HttpMethod.OPTIONS) {
             return chain.filter(exchange);
         }
-        // 放行路径（不需要认证）
-        if (isIgnorePath(path)) {
+
+        // 所有路径都尝试提取用户信息并传递到下游（try enhance模式）
+        // 有token则解析并传递X-User-Id/X-Username头，无token则不处理
+        ServerWebExchange enhancedExchange = tryEnhanceWithUser(exchange);
+        if (enhancedExchange == null) {
+            // 解析token时发生异常（token无效/过期），仅对需要认证的路径返回401
+            if (isAuthRequiredPath(path)) {
+                return unauthorizedResponse(exchange, "认证失败，请重新登录");
+            }
+            // 其他路径（包括白名单路径），token无效时直接放行（不带用户信息）
             return chain.filter(exchange);
+        }
+
+        // 放行路径（不需要认证），但已经携带了用户信息（如果有token的话）
+        if (isIgnorePath(path)) {
+            return chain.filter(enhancedExchange);
         }
 
         // 需要认证的路径
@@ -97,36 +108,28 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             if (!StringUtils.hasText(token)) {
                 return unauthorizedResponse(exchange, "未登录，请先登录");
             }
-
-            try {
-                SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-                Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
-
-                String blacklistKey = "user:blacklist:" + claims.getSubject();
-                if (Boolean.TRUE.equals(redisTemplate.hasKey(blacklistKey))) {
-                    return unauthorizedResponse(exchange, "令牌已失效，请重新登录");
-                }
-
-                String userId = String.valueOf(claims.get("userId"));
-                String username = (String) claims.get("username");
-
-                ServerHttpRequest request = exchange.getRequest().mutate()
-                        .header("X-User-Id", userId)
-                        .header("X-Username", username != null ? username : "")
-                        .build();
-
-                return chain.filter(exchange.mutate().request(request).build());
-
-            } catch (Exception e) {
-                log.warn("JWT验证失败: {}", e.getMessage());
-                return unauthorizedResponse(exchange, "认证失败，请重新登录");
-            }
+            // tryEnhanceWithUser已成功解析token（enhancedExchange不为null）
+            return chain.filter(enhancedExchange);
         }
 
-        // 其他路径也需要token验证
+        // 其他路径：有token则验证并传递，无token则返回401
         String token = extractToken(exchange.getRequest());
         if (!StringUtils.hasText(token)) {
             return unauthorizedResponse(exchange, "未登录，请先登录");
+        }
+        // tryEnhanceWithUser已成功（enhancedExchange不为null）
+        return chain.filter(enhancedExchange);
+    }
+
+    /**
+     * 尝试从请求中解析JWT token并增强请求头（X-User-Id, X-Username）。
+     * 有有效token时返回增强后的exchange；无token时返回原始exchange；token无效时返回null。
+     */
+    private ServerWebExchange tryEnhanceWithUser(ServerWebExchange exchange) {
+        String token = extractToken(exchange.getRequest());
+        if (!StringUtils.hasText(token)) {
+            // 无token，不增强，返回原始exchange
+            return exchange;
         }
 
         try {
@@ -135,7 +138,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
             String blacklistKey = "user:blacklist:" + claims.getSubject();
             if (Boolean.TRUE.equals(redisTemplate.hasKey(blacklistKey))) {
-                return unauthorizedResponse(exchange, "令牌已失效，请重新登录");
+                // token在黑名单中
+                return null;
             }
 
             String userId = String.valueOf(claims.get("userId"));
@@ -146,11 +150,10 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                     .header("X-Username", username != null ? username : "")
                     .build();
 
-            return chain.filter(exchange.mutate().request(request).build());
-
+            return exchange.mutate().request(request).build();
         } catch (Exception e) {
-            log.warn("JWT验证失败: {}", e.getMessage());
-            return unauthorizedResponse(exchange, "认证失败，请重新登录");
+            log.warn("JWT解析失败: {}", e.getMessage());
+            return null;
         }
     }
 

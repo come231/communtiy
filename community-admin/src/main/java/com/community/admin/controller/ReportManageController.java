@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/admin/reports")
+@RequestMapping("/admin/reports-manage")
 @Tag(name = "举报管理", description = "内容举报管理接口")
 public class ReportManageController {
 

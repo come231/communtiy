@@ -22,6 +22,7 @@ public class PostVO {
     private Integer likeCount;
     private Integer commentCount;
     private Integer collectCount;
+    private Integer status;
     private Integer shareCount;
     private LocalDateTime createTime;
     private String authorName;

@@ -9,6 +9,7 @@ import com.community.ai.mapper.AiChatMapper;
 import com.community.ai.util.AiCallHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -23,7 +24,8 @@ public class AiChatService {
 
     private final AiCallHelper aiCallHelper;
     private final AiChatMapper aiChatMapper;
-
+    @Value("${spring.ai.openai.chat.options.model:glm-4-flash}")
+    private String model;
     private static final int MAX_HISTORY_SIZE = 20;
 
     public ChatResponse chat(Long userId, ChatRequest request) {
@@ -36,7 +38,7 @@ public class AiChatService {
         userMsg.setUserId(userId);
         userMsg.setSessionId(sessionId);
         userMsg.setRole("user");
-        userMsg.setContent(request.getMessage());
+        userMsg.setContent(request.getContent());
         userMsg.setCreateTime(LocalDateTime.now());
         aiChatMapper.insert(userMsg);
 
@@ -47,7 +49,7 @@ public class AiChatService {
                 contextBuilder.append(chat.getRole()).append(": ").append(chat.getContent()).append("\n");
             }
 
-            String fullPrompt = contextBuilder.toString() + "\n[用户]" + request.getMessage();
+            String fullPrompt = contextBuilder.toString() + "\n[用户]" + request.getContent();
             String reply = aiCallHelper.callWithSystem("你是一个智能社区助手，请用友好、专业的态度回答用户的问题。", fullPrompt);
 
             int tokens = reply.length() / 2;
@@ -58,7 +60,7 @@ public class AiChatService {
             assistantMsg.setRole("assistant");
             assistantMsg.setContent(reply);
             assistantMsg.setTokens(tokens);
-            assistantMsg.setModel("doubao-lite-32k");
+            assistantMsg.setModel(model);
             assistantMsg.setCreateTime(LocalDateTime.now());
             aiChatMapper.insert(assistantMsg);
 

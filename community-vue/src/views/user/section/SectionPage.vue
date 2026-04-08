@@ -19,22 +19,22 @@
 
       <!-- 板块网格 -->
       <div v-if="filtered.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-        <div v-for="section in filtered" :key="section.id" @click="goSection(section)"
+        <div v-for="section in filtered" :key="section.sectionId" @click="goSection(section)"
           class="group bg-white rounded-xl p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer border border-transparent hover:border-blue-100">
           <div class="flex items-start justify-between mb-4">
             <div class="w-14 h-14 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl shadow-inner"
-              :style="{ background: getGradient(section.id) }">
-              {{ section.icon || section.name.charAt(0) }}
+              :style="{ background: getGradient(section.sectionId) }">
+              {{ section.name.charAt(0) }}
             </div>
             <span class="text-xs text-gray-400 bg-gray-50 px-2.5 py-1 rounded-full">{{ section.postCount || 0 }} 帖子</span>
           </div>
           <h3 class="font-semibold text-gray-800 group-hover:text-blue-600 transition-colors mb-1.5">{{ section.name }}</h3>
-          <p class="text-sm text-gray-500 line-clamp-2 leading-relaxed">{{ section.description || '探索更多精彩内容' }}</p>
+          <p class="text-sm text-gray-500 line-clamp-2 leading-relaxed">{{ section.intro || '探索更多精彩内容' }}</p>
           <div class="mt-4 pt-4 border-t border-dashed border-gray-100 flex items-center justify-between">
             <div class="flex -space-x-2">
               <div v-for="i in 3" :key="i"
                 class="w-6 h-6 rounded-full bg-gradient-to-br ring-2 ring-white"
-                :style="{ background: `hsl(${(section.id * 47 + i * 90) % 360}, 70%, 75%)` }"></div>
+                :style="{ background: `hsl(${(section.sectionId * 47 + i * 90) % 360}, 70%, 75%)` }"></div>
             </div>
             <ArrowRight class="w-4 h-4 text-gray-300 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
           </div>
@@ -76,7 +76,7 @@ const filtered = computed(() => {
   if (!keyword.value.trim()) return sections.value
   return sections.value.filter((s: any) =>
     s.name.includes(keyword.value.trim()) ||
-    (s.description && s.description.includes(keyword.value.trim()))
+    (s.intro && s.intro.includes(keyword.value.trim()))
   )
 })
 
@@ -98,7 +98,7 @@ function getGradient(id: number): string {
 }
 
 function goSection(section: any) {
-  router.push({ path: '/', query: { sectionId: String(section.id), sectionName: section.name } })
+  router.push(`/section/${section.sectionId || section.id}`)
 }
 
 onMounted(async () => {

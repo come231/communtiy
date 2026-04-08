@@ -2,7 +2,8 @@
 SQLyog Ultimate v12.08 (64 bit)
 MySQL - 8.0.28 : Database - community_message
 *********************************************************************
-*/
+*/
+
 
 /*!40101 SET NAMES utf8 */;
 
@@ -22,19 +23,19 @@ DROP TABLE IF EXISTS `chat_msg`;
 
 CREATE TABLE `chat_msg` (
   `msg_id` bigint NOT NULL AUTO_INCREMENT,
-  `from_uid` bigint NOT NULL,
-  `to_uid` bigint NOT NULL,
+  `from_user_id` bigint NOT NULL,
+  `to_user_id` bigint NOT NULL,
   `content` varchar(1000) NOT NULL,
   `status` tinyint DEFAULT '1',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `is_read` tinyint DEFAULT '0' COMMENT '0未读 1已读',
   PRIMARY KEY (`msg_id`),
-  KEY `idx_from_to` (`from_uid`,`to_uid`)
+  KEY `idx_from_to` (`from_user_id`,`to_user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='私信表';
 
 /*Data for the table `chat_msg` */
 
-insert  into `chat_msg`(`msg_id`,`from_uid`,`to_uid`,`content`,`status`,`create_time`,`is_read`) values (1,1,2,'你好，看了你的React文章，有个问题想请教',1,'2026-03-23 23:15:53',0),(2,2,1,'你好！请问有什么问题？',1,'2026-03-23 23:15:53',0),(3,1,2,'关于并发渲染的部分，能详细解释一下吗？',1,'2026-03-23 23:15:53',0),(4,2,1,'没问题，并发渲染是React 18的重要特性...',1,'2026-03-23 23:15:53',0),(5,3,4,'你的设计文章写得很好，想请教一些设计系统的问题',1,'2026-03-23 23:15:53',0),(6,4,3,'谢谢！设计系统确实是个很有意思的话题',1,'2026-03-23 23:15:53',0),(7,1,3,'大佬，能请教一些微服务的问题吗？',1,'2026-03-23 23:15:53',0),(8,3,1,'当然可以，有什么问题尽管问',1,'2026-03-23 23:15:53',0),(9,5,1,'你的面试文章很有帮助，感谢分享！',1,'2026-03-23 23:15:53',0),(10,1,5,'不客气，希望对你有帮助',1,'2026-03-23 23:15:53',0);
+insert  into `chat_msg`(`msg_id`,`from_user_id`,`to_user_id`,`content`,`status`,`create_time`,`is_read`) values (1,1,2,'你好，看了你的React文章，有个问题想请教',1,'2026-03-23 23:15:53',0),(2,2,1,'你好！请问有什么问题？',1,'2026-03-23 23:15:53',0),(3,1,2,'关于并发渲染的部分，能详细解释一下吗？',1,'2026-03-23 23:15:53',0),(4,2,1,'没问题，并发渲染是React 18的重要特性...',1,'2026-03-23 23:15:53',0),(5,3,4,'你的设计文章写得很好，想请教一些设计系统的问题',1,'2026-03-23 23:15:53',0),(6,4,3,'谢谢！设计系统确实是个很有意思的话题',1,'2026-03-23 23:15:53',0),(7,1,3,'大佬，能请教一些微服务的问题吗？',1,'2026-03-23 23:15:53',0),(8,3,1,'当然可以，有什么问题尽管问',1,'2026-03-23 23:15:53',0),(9,5,1,'你的面试文章很有帮助，感谢分享！',1,'2026-03-23 23:15:53',0),(10,1,5,'不客气，希望对你有帮助',1,'2026-03-23 23:15:53',0);
 
 /*Table structure for table `notice` */
 

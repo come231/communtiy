@@ -2,11 +2,15 @@ package com.community.admin.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.community.admin.entity.OperationLog;
-import com.community.admin.mapper.OperationLogMapper;
+import com.community.admin.feign.UserFeignClient;
+
+import com.community.admin.mapper.security.OperationLogMapper;
+import com.community.common.exception.BusinessException;
+import com.community.common.result.PageResult;
+import com.community.common.result.Result;
+import com.community.common.result.ResultCode;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -17,120 +21,123 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserManageService {
 
-    @Qualifier("securityJdbcTemplate")
-    private final JdbcTemplate securityJdbcTemplate;
-
+    private final JdbcTemplate jdbcTemplate; // 现在只有一个jdbcTemplate，连接到security库
     private final OperationLogMapper operationLogMapper;
+    private final UserFeignClient userFeignClient;
 
     /**
      * 获取用户列表（分页查询）
      */
     public IPage<Map<String, Object>> getUserList(int page, int size, String keyword) {
-        Page<Map<String, Object>> pageObj = new Page<>(page, size);
-
-        StringBuilder sql = new StringBuilder(
-                "SELECT u.user_id as userId, u.username as username, " +
-                "COUNT(*) as activityCount, MAX(o.create_time) as lastActiveTime " +
-                "FROM (" +
-                "   SELECT DISTINCT user_id, username FROM operation_log");
-
-        StringBuilder countSql = new StringBuilder(
-                "SELECT COUNT(DISTINCT user_id) FROM operation_log");
-
-        if (keyword != null && !keyword.isEmpty()) {
-            sql.append(" WHERE username LIKE ?");
-            countSql.append(" WHERE username LIKE ?");
-        }
-
-        sql.append(") u LEFT JOIN operation_log o ON u.user_id = o.user_id GROUP BY u.user_id, u.username");
-
-        List<Object> params = new ArrayList<>();
-        if (keyword != null && !keyword.isEmpty()) {
-            params.add("%" + keyword + "%");
-        }
-
-        long total;
         try {
-            total = securityJdbcTemplate.queryForObject(countSql.toString(), Long.class, params.toArray());
+            // 调用用户服务的Feign接口搜索用户
+            Result<Map<String, Object>> result = userFeignClient.searchUsers(keyword, page, size);
+            
+            if (!result.isSuccess()) {
+                log.error("获取用户列表失败: {}", result.getMessage());
+                throw new BusinessException(ResultCode.FAILED, "获取用户列表失败");
+            }
+            
+            Map<String, Object> searchResult = result.getData();
+            PageResult<Map<String, Object>> pageResult = new PageResult<>();
+            pageResult.setTotal((Long) searchResult.getOrDefault("total", 0L));
+            pageResult.setRecords((List<Map<String, Object>>) searchResult.getOrDefault("records", new ArrayList<>()));
+            
+            // 转换为IPage格式
+            Page<Map<String, Object>> pageObj = new Page<>(page, size);
+            pageObj.setTotal(pageResult.getTotal());
+            pageObj.setRecords(pageResult.getRecords());
+            
+            return pageObj;
         } catch (Exception e) {
-            total = 0;
+            log.error("调用用户服务获取用户列表异常: {}", e.getMessage(), e);
+            throw new BusinessException(ResultCode.FAILED, "服务调用异常: " + e.getMessage());
         }
-
-        sql.append(" ORDER BY lastActiveTime DESC LIMIT ?, ?");
-        params.add((page - 1) * size);
-        params.add(size);
-
-        List<Map<String, Object>> records;
-        try {
-            records = securityJdbcTemplate.queryForList(sql.toString(), params.toArray());
-        } catch (Exception e) {
-            records = new ArrayList<>();
-        }
-
-        pageObj.setRecords(records);
-        pageObj.setTotal(total);
-        return pageObj;
     }
 
     /**
      * 获取用户详情
      */
     public Map<String, Object> getUserDetail(Long userId) {
-        Map<String, Object> detail = new HashMap<>();
-        detail.put("userId", userId);
-
         try {
-            // 用户基本信息
-            Map<String, Object> userInfo = securityJdbcTemplate.queryForMap(
-                    "SELECT user_id, username, COUNT(*) as totalOperations, " +
-                    "MAX(create_time) as lastActiveTime, MIN(create_time) as firstActiveTime " +
-                    "FROM operation_log WHERE user_id = ? GROUP BY user_id, username", userId);
+            // 调用用户服务的Feign接口获取用户信息
+            Result<Map<String, Object>> result = userFeignClient.getUserInfo(userId);
+            
+            if (!result.isSuccess()) {
+                log.error("获取用户详情失败: {}", result.getMessage());
+                throw new BusinessException(ResultCode.FAILED, "获取用户详情失败");
+            }
+            
+            Map<String, Object> userInfo = result.getData();
+            
+            // 从安全库获取用户操作日志信息
+            Map<String, Object> detail = new HashMap<>();
             detail.putAll(userInfo);
+            
+            try {
+                // 用户操作统计
+                Map<String, Object> operationInfo = jdbcTemplate.queryForMap(
+                        "SELECT user_id, username, COUNT(*) as totalOperations, " +
+                        "MAX(create_time) as lastActiveTime, MIN(create_time) as firstActiveTime " +
+                        "FROM operation_log WHERE user_id = ? GROUP BY user_id, username", userId);
+                detail.putAll(operationInfo);
 
-            // 最近操作记录
-            List<Map<String, Object>> recentOps = securityJdbcTemplate.queryForList(
-                    "SELECT module, operation, url, ip, create_time FROM operation_log " +
-                    "WHERE user_id = ? ORDER BY create_time DESC LIMIT 10", userId);
-            detail.put("recentOperations", recentOps);
+                // 最近操作记录
+                List<Map<String, Object>> recentOps = jdbcTemplate.queryForList(
+                        "SELECT module, operation, url, ip, create_time FROM operation_log " +
+                        "WHERE user_id = ? ORDER BY create_time DESC LIMIT 10", userId);
+                detail.put("recentOperations", recentOps);
 
-            // 操作统计按模块分组
-            List<Map<String, Object>> statsByModule = securityJdbcTemplate.queryForList(
-                    "SELECT module, COUNT(*) as count FROM operation_log WHERE user_id = ? " +
-                    "GROUP BY module ORDER BY count DESC", userId);
-            detail.put("statsByModule", statsByModule);
+                // 操作统计按模块分组
+                List<Map<String, Object>> statsByModule = jdbcTemplate.queryForList(
+                        "SELECT module, COUNT(*) as count FROM operation_log WHERE user_id = ? " +
+                        "GROUP BY module ORDER BY count DESC", userId);
+                detail.put("statsByModule", statsByModule);
+            } catch (Exception e) {
+                detail.put("totalOperations", 0);
+                detail.put("recentOperations", new ArrayList<>());
+                detail.put("statsByModule", new ArrayList<>());
+            }
+            
+            return detail;
         } catch (Exception e) {
-            detail.put("totalOperations", 0);
-            detail.put("recentOperations", new ArrayList<>());
-            detail.put("statsByModule", new ArrayList<>());
+            log.error("调用用户服务获取用户详情异常: {}", e.getMessage(), e);
+            throw new BusinessException(ResultCode.FAILED, "服务调用异常: " + e.getMessage());
         }
-
-        return detail;
     }
 
     /**
-     * 封禁用户（写入IP黑名单）
+     * 封禁用户（禁用账户 + 写入IP黑名单）
      */
     public void banUser(Long userId, String reason, Integer days) {
-        // 查找用户的IP地址
-        String ip = null;
+        // 通过Feign调用用户服务禁用账户
         try {
-            Map<String, Object> userRecord = securityJdbcTemplate.queryForMap(
-                    "SELECT DISTINCT ip FROM operation_log WHERE user_id = ? ORDER BY create_time DESC LIMIT 1", userId);
-            ip = (String) userRecord.get("ip");
+            userFeignClient.updateUserStatus(userId, 0);
         } catch (Exception e) {
-            // 忽略
+            log.warn("调用用户服务禁用账户失败: {}", e.getMessage());
         }
 
-        if (ip != null) {
-            java.time.LocalDateTime expireTime = days > 0
-                    ? java.time.LocalDateTime.now().plusDays(days)
-                    : java.time.LocalDateTime.now().plusYears(100);
+        // 同时写入IP黑名单
+        try {
+            String ip = null;
+            Map<String, Object> userRecord = jdbcTemplate.queryForMap(
+                    "SELECT DISTINCT ip FROM operation_log WHERE user_id = ? ORDER BY create_time DESC LIMIT 1", userId);
+            ip = (String) userRecord.get("ip");
 
-            securityJdbcTemplate.update(
-                    "INSERT INTO ip_blacklist (ip, reason, status, create_time, expire_time) VALUES (?, ?, 1, NOW(), ?)",
-                    ip, reason != null ? reason : "违规操作封禁", expireTime);
+            if (ip != null) {
+                java.time.LocalDateTime expireTime = days != null && days > 0
+                        ? java.time.LocalDateTime.now().plusDays(days)
+                        : java.time.LocalDateTime.now().plusYears(100);
+
+                jdbcTemplate.update(
+                        "INSERT INTO ip_blacklist (ip, reason, status, create_time, expire_time) VALUES (?, ?, 1, NOW(), ?)",
+                        ip, reason != null ? reason : "违规操作封禁", expireTime);
+            }
+        } catch (Exception e) {
+            log.warn("写入IP黑名单失败: {}", e.getMessage());
         }
     }
 
@@ -138,18 +145,26 @@ public class UserManageService {
      * 解封用户
      */
     public void unbanUser(Long userId) {
+        // 通过Feign调用用户服务启用账户
+        try {
+            userFeignClient.updateUserStatus(userId, 1);
+        } catch (Exception e) {
+            log.warn("调用用户服务启用账户失败: {}", e.getMessage());
+        }
+
+        // 清除IP黑名单
         try {
             String ip = null;
-            Map<String, Object> userRecord = securityJdbcTemplate.queryForMap(
+            Map<String, Object> userRecord = jdbcTemplate.queryForMap(
                     "SELECT DISTINCT ip FROM operation_log WHERE user_id = ? ORDER BY create_time DESC LIMIT 1", userId);
             ip = (String) userRecord.get("ip");
 
             if (ip != null) {
-                securityJdbcTemplate.update(
+                jdbcTemplate.update(
                         "UPDATE ip_blacklist SET status = 0 WHERE ip = ?", ip);
             }
         } catch (Exception e) {
-            // 忽略
+            log.warn("清除IP黑名单失败: {}", e.getMessage());
         }
     }
 }

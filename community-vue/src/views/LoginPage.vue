@@ -87,6 +87,7 @@ async function handleLogin() {
     } else {
       await adminStore.login(form)
       ElMessage.success('管理员登录成功！')
+      
       router.push('/admin')
     }
   } catch (e: any) {

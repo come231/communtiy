@@ -6,7 +6,7 @@ import lombok.Data;
 public class ChatRequest {
 
     /** 用户消息 */
-    private String message;
+    private String content;
 
     /** 会话ID，为空则新建会话 */
     private String sessionId;

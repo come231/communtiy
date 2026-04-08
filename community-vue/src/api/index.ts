@@ -100,6 +100,9 @@ export const sectionApi = {
   detail(id: number) {
     return request.get<Section>(`/sections/${id}`)
   },
+  create(data: { name: string; intro?: string; icon?: string }) {
+    return request.post('/sections', data)
+  },
 }
 
 export const topicApi = {
@@ -291,7 +294,7 @@ export const adminApi = {
     return request.get<DashboardStats>('/dashboard/stats')
   },
   // 用户管理
-  users(params: { keyword?: string; status?: number; pageNum?: number; pageSize?: number }) {
+  users(params: { keyword?: string; status?: number; page?: number; size?: number }) {
     return request.get<PageResult<AdminUser>>('/admin/users', { params })
   },
   updateUserStatus(userId: number, status: number) {
@@ -302,7 +305,7 @@ export const adminApi = {
     }
   },
   // 内容管理
-  posts(params: { keyword?: string; status?: number; pageNum?: number; pageSize?: number }) {
+  posts(params: { keyword?: string; status?: number; page?: number; size?: number }) {
     return request.get<PageResult<AdminPost>>('/admin/posts', { params })
   },
   reviewPost(id: number, status: number, reason?: string) {
@@ -312,27 +315,30 @@ export const adminApi = {
     return request.delete(`/admin/posts/${id}`)
   },
   // 举报管理
-  reports(params: { type?: number; status?: number; pageNum?: number; pageSize?: number }) {
-    return request.get<PageResult<Report>>('/admin/reports', { params })
+  reports(params: { type?: number; status?: number; page?: number; size?: number }) {
+    return request.get<PageResult<Report>>('/admin/reports-manage', { params })
   },
   handleReport(id: number, status: number, result?: string) {
-    return request.put(`/admin/reports/${id}/handle`, null, { params: { status, result } })
+    return request.put(`/admin/reports-manage/${id}/handle`, { status, result })
+  },
+  reportCount() {
+    return request.get<Map<number, number>>('/admin/reports-manage/count')
   },
   // 敏感词管理
-  sensitiveWords(params?: { keyword?: string; pageNum?: number; pageSize?: number }) {
+  sensitiveWords(params?: { keyword?: string; page?: number; size?: number }) {
     return request.get<PageResult<SensitiveWord>>('/admin/sensitive-words', { params })
   },
   addSensitiveWord(data: { word: string; level: number; category: string; replacement?: string }) {
-    return request.post('/admin/sensitive-words', data)
+    return request.post('/admin/sensitive-word', data)
   },
   updateSensitiveWord(id: number, data: any) {
-    return request.put(`/admin/sensitive-words/${id}`, data)
+    return request.put(`/admin/sensitive-word/${id}`, data)
   },
   deleteSensitiveWord(id: number) {
-    return request.delete(`/admin/sensitive-words/${id}`)
+    return request.delete(`/admin/sensitive-word/${id}`)
   },
   batchImportSensitiveWords(words: string[]) {
-    return request.post('/admin/sensitive-words/batch', { words })
+    return request.post('/admin/sensitive-words/import', { words })
   },
   // 系统配置
   configs(groupKey?: string) {
@@ -340,5 +346,32 @@ export const adminApi = {
   },
   updateConfig(id: number, value: string) {
     return request.put(`/admin/configs/${id}`, { configValue: value })
+  },
+  // 消息管理
+  messages(params: { page?: number; size?: number; keyword?: string }) {
+    return request.get<any>('/admin/messages', { params })
+  },
+  deleteMessage(id: number) {
+    return request.delete(`/admin/messages/${id}`)
+  },
+  // 通知管理
+  notices(params: { page?: number; size?: number; type?: number }) {
+    return request.get<any>('/admin/notices', { params })
+  },
+  deleteNotice(id: number) {
+    return request.delete(`/admin/notices/${id}`)
+  },
+  // AI管理
+  aiConfig() {
+    return request.get<any>('/admin/ai/config')
+  },
+  updateAiConfig(data: any) {
+    return request.put('/admin/ai/config', data)
+  },
+  aiChatRecords(params: { page?: number; size?: number; keyword?: string }) {
+    return request.get<any>('/admin/ai/chat-records', { params })
+  },
+  aiStats() {
+    return request.get<any>('/admin/ai/stats')
   },
 }

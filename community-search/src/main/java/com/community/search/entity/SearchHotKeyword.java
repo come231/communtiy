@@ -15,7 +15,7 @@ public class SearchHotKeyword {
     private String keyword;
 
     private Integer searchCount;
-
+    @TableField("`rank`")
     private Integer rank;
 
     @TableField(fill = FieldFill.INSERT_UPDATE)

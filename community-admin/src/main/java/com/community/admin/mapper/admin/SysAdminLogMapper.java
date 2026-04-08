@@ -1,4 +1,4 @@
-package com.community.admin.mapper;
+package com.community.admin.mapper.admin;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.community.admin.entity.SysAdminLog;

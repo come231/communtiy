@@ -24,7 +24,7 @@ public class ChatMsgController {
     @GetMapping("/list")
     @Operation(summary = "聊天记录", description = "获取与指定用户的聊天记录")
     public Result<PageResult<ChatMsg>> getChatList(
-            @Parameter(description = "对方用户ID") @RequestParam Long otherUserId,
+            @Parameter(description = "对方用户ID") @RequestParam(required = false) Long otherUserId,
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") int page,
             @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") int size) {
         return Result.success(chatMsgService.getChatList(otherUserId, page, size));

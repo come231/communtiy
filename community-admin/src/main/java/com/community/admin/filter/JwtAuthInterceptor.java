@@ -8,10 +8,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 import java.io.IOException;
+import java.util.Map;
 
 @Component
 @Slf4j
@@ -22,6 +24,10 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
     private final AdminAuthService adminAuthService;
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
+
+    // 从 yml 读取自动刷新阈值（你要的 <5分钟）
+    @Value("${jwt.auto-refresh-threshold:300000}")
+    private long autoRefreshThreshold;
 
     @Override
     public boolean preHandle(
@@ -65,7 +71,25 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
                 setUnauthorized(response, "无效的令牌类型");
                 return false;
             }
+// ==========================================
+            // 🔥 自动刷新逻辑（你要的核心功能）
+            // ==========================================
+            long remain = jwtUtil.getTokenRemainingTime(token);
+            if (remain <= autoRefreshThreshold) {
+                log.info("token 即将过期，自动刷新：剩余 {}ms", remain);
 
+                // 从当前 token 获取 adminId
+                Long adminId = jwtUtil.getUserId(token);
+
+                // 调用你原有的 Service 刷新
+                Map<String, Object> newToken = adminAuthService.refreshTokenByAdminId(adminId);
+
+                // 把新 token 放进响应头
+                response.setHeader("new-refresh-token", (String) newToken.get("refreshToken"));
+                response.setHeader("new-access-token", "Bearer " + newToken.get("accessToken"));
+
+                log.info("自动刷新 token 成功，adminId: {}", adminId);
+            }
             // 7. 解析用户信息
             Long adminId = jwtUtil.getUserId(token);
             String username = jwtUtil.getUsername(token);
@@ -73,7 +97,7 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
             // 8. 存入上下文
             AdminContextHolder.setAdminId(adminId);
             AdminContextHolder.setUsername(username);
-
+            System.out.println("访问令牌为："+token);
             return true;
 
         } catch (Exception e) {

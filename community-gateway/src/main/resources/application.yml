@@ -43,7 +43,7 @@ spring:
           predicates:
             - Path=/admin/**,/dashboard/**
       # ↓↓↓ CORS 修复成正确格式 ↓↓↓
-      globalcors:
+      global-cors:
         cors-configurations:
           '[/**]':
             allowed-origin-patterns: "http://localhost:*"

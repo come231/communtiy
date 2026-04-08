@@ -1,15 +1,13 @@
 package com.community.admin;
 
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
-@SpringBootApplication(scanBasePackages = "com.community.common")
-@MapperScan("com.community.admin")
+@SpringBootApplication(scanBasePackages = "com.community")
 @EnableDiscoveryClient
-@EnableFeignClients
+@EnableFeignClients(basePackages = "com.community")
 public class AdminApplication {
 
     public static void main(String[] args) {

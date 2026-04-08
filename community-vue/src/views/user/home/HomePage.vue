@@ -69,7 +69,9 @@
             热门话题
           </h3>
           <div class="space-y-3">
-            <div v-for="(topic, i) in hotTopics" :key="topic.id" class="flex items-center gap-3 cursor-pointer group">
+            <div v-for="(topic, i) in hotTopics" :key="topic.id"
+            @click="filterByTopic(topic)"
+            :class="['flex items-center gap-3 cursor-pointer group', selectedTopic?.id === topic.id ? 'bg-blue-50 rounded-lg p-1.5 -mx-1.5' : '']">
               <span :class="['w-5 h-5 rounded text-xs font-bold flex items-center justify-center flex-shrink-0', i < 3 ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-400']">{{ i + 1 }}</span>
               <span class="text-sm text-gray-700 group-hover:text-primary transition-colors truncate">#{{ topic.name }}</span>
               <span class="text-xs text-gray-400 ml-auto">{{ topic.postCount }}帖</span>
@@ -105,6 +107,8 @@ import { postApi, topicApi, userApi } from '../../../api'
 import type { Post, Topic, UserInfo } from '../../../types'
 
 const defaultAvatar = 'https://placehold.co/40x40/e0e7ff/409EFF?text=U'
+const selectedTopic = ref<Topic | null>(null)
+
 const tabs = [
   { key: 'recommend', label: '推荐' },
   { key: 'latest', label: '最新' },
@@ -130,7 +134,11 @@ async function fetchPosts() {
     if (activeTab.value === 'hot') {
       res = await postApi.hot(1, 10)
     } else {
-      res = await postApi.list({ sort: activeTab.value === 'recommend' ? 'latest' : activeTab.value, pageNum: 1, pageSize: 10 })
+      res = await postApi.list({
+        sort: activeTab.value === 'recommend' ? 'latest' : activeTab.value,
+        pageNum: 1, pageSize: 10,
+        topicId: selectedTopic.value?.id || undefined,
+      })
     }
     posts.value = (res.records || []).map((p: any) => ({
       ...p,
@@ -144,6 +152,15 @@ async function fetchPosts() {
   } finally {
     loading.value = false
   }
+}
+
+function filterByTopic(topic: Topic) {
+  if (selectedTopic.value?.id === topic.id) {
+    selectedTopic.value = null
+  } else {
+    selectedTopic.value = topic
+  }
+  fetchPosts()
 }
 
 async function fetchHotTopics() {

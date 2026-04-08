@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/sections")
@@ -35,5 +36,14 @@ public class SectionController {
     @Operation(summary = "板块详情", description = "获取指定板块的详细信息")
     public Result<Section> getSectionDetail(@PathVariable Long sectionId) {
         return Result.success(sectionService.getSectionDetail(sectionId));
+    }
+
+    @PostMapping
+    @Operation(summary = "创建板块", description = "用户自定义创建板块")
+    public Result<Section> createSection(@RequestBody Map<String, String> body) {
+        String name = body.get("name");
+        String intro = body.get("intro");
+        String icon = body.get("icon");
+        return Result.success(sectionService.createSection(name, intro, icon));
     }
 }

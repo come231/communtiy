@@ -14,6 +14,7 @@ import com.community.common.util.RedisUtil;
 import com.community.user.dto.*;
 import com.community.user.entity.*;
 import com.community.user.mapper.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -22,6 +23,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -70,7 +74,7 @@ public class UserService {
         userInfoMap.put("nickname", user.getNickname());
         userInfoMap.put("avatar", user.getAvatar());
         try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            ObjectMapper mapper = new ObjectMapper();
             String userInfoJson = mapper.writeValueAsString(userInfoMap);
             redisUtil.set(RedisKeyConstant.USER_INFO_PREFIX + user.getUserId(), userInfoJson, 30, TimeUnit.MINUTES);
         } catch (Exception e) {
@@ -169,6 +173,17 @@ public class UserService {
         redisUtil.delete(RedisKeyConstant.USER_REFRESH_TOKEN_PREFIX + userId);
     }
 
+    public Map<String, Object> getUserInfoById(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        Map<String, Object> map= new HashMap<>();
+        map.put("nickname",user.getNickname());
+        map.put("avatar",user.getAvatar());
+        return map;
+    }
+
     public UserVO getUserInfo(Long userId) {
         User user = userMapper.selectById(userId);
         if (user == null) {
@@ -259,5 +274,40 @@ public class UserService {
         vo.setFollowerCount(followerCount);
 
         return vo;
+    }
+
+    public Long count() {
+        Long count=userMapper.selectCount(new LambdaQueryWrapper<>(User.class));
+        return count;
+    }
+
+    /**
+     * 今日活跃用户数（今日有更新的用户，近似活跃）
+     */
+    public Long countTodayActive() {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.ge(User::getUpdateTime, LocalDateTime.of(LocalDate.now(), LocalTime.MIN));
+        return userMapper.selectCount(wrapper);
+    }
+
+    /**
+     * 今日新增用户数
+     */
+    public Long countTodayNew() {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.ge(User::getCreateTime, LocalDateTime.of(LocalDate.now(), LocalTime.MIN));
+        return userMapper.selectCount(wrapper);
+    }
+
+    /**
+     * 管理员更新用户状态（禁用/启用）
+     */
+    public void updateStatus(Long userId, Integer status) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        user.setStatus(status);
+        userMapper.updateById(user);
     }
 }

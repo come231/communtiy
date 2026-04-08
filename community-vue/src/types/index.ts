@@ -87,16 +87,12 @@ export interface Notice {
 }
 
 export interface Conversation {
-  userId: number
-  userName: string
-  userAvatar: string
+  otherUserId: number
+  nickName: string
+  avatar: string
   lastMessage: string
   lastTime: string
   unreadCount: number
-  // 兼容前端使用的别名
-  nickname?: string
-  avatar?: string
-  unread?: number
   online?: boolean
 }
 

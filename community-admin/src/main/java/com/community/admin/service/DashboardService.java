@@ -1,11 +1,11 @@
 package com.community.admin.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.community.admin.entity.Report;
-import com.community.admin.mapper.ReportMapper;
+import com.community.admin.feign.PostFeignClient;
+import com.community.admin.feign.UserFeignClient;
 import com.community.admin.vo.DashboardVO;
+import com.community.common.result.Result;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -16,43 +16,70 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DashboardService {
 
-    @Qualifier("primaryJdbcTemplate")
-    private final JdbcTemplate primaryJdbcTemplate;
-
-    @Qualifier("securityJdbcTemplate")
-    private final JdbcTemplate securityJdbcTemplate;
-
-    private final ReportMapper reportMapper;
+    private final JdbcTemplate jdbcTemplate;
+    private final UserFeignClient userFeignClient;
+    private final PostFeignClient postFeignClient;
 
     public DashboardVO getDashboardStats() {
         DashboardVO vo = new DashboardVO();
 
         try {
-            // 总用户数（从安全库查询）
-            vo.setTotalUserCount(securityJdbcTemplate.queryForObject(
-                    "SELECT COUNT(DISTINCT user_id) FROM operation_log WHERE 1=1", Long.class));
+            // 总用户数（从用户服务获取）
+            try {
+                Result<Map<String, Object>> userStatsResult = userFeignClient.getUserStats();
+                if (userStatsResult.isSuccess()) {
+                    Map<String, Object> userStats = userStatsResult.getData();
+                    vo.setTotalUserCount((Long) userStats.getOrDefault("totalUserCount", 0L));
+                } else {
+                    vo.setTotalUserCount(0L);
+                }
+            } catch (Exception e) {
+                vo.setTotalUserCount(0L);
+            }
 
-            // 总帖子数（估算）
-            vo.setTotalPostCount(0L);
+            // 总帖子数（从社区服务获取）
+            try {
+                Result<Map<String, Object>> postStatsResult = postFeignClient.getPostStats();
+                if (postStatsResult.isSuccess()) {
+                    Map<String, Object> postStats = postStatsResult.getData();
+                    vo.setTotalPostCount((Long) postStats.getOrDefault("totalPostCount", 0L));
+                    vo.setTotalCommentCount((Long) postStats.getOrDefault("totalCommentCount", 0L));
+                } else {
+                    vo.setTotalPostCount(0L);
+                    vo.setTotalCommentCount(0L);
+                }
+            } catch (Exception e) {
+                vo.setTotalPostCount(0L);
+                vo.setTotalCommentCount(0L);
+            }
 
-            // 总评论数（估算）
-            vo.setTotalCommentCount(0L);
-
-            // 今日活跃用户
+            // 今日活跃用户（从安全库查询）
             LocalDateTime todayStart = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
-            vo.setTodayActiveUser(securityJdbcTemplate.queryForObject(
-                    "SELECT COUNT(DISTINCT user_id) FROM operation_log WHERE create_time >= ?",
-                    Long.class, todayStart));
+            try {
+                vo.setTodayActiveUser(jdbcTemplate.queryForObject(
+                        "SELECT COUNT(DISTINCT user_id) FROM operation_log WHERE create_time >= ?",
+                        Long.class, todayStart));
+            } catch (Exception e) {
+                vo.setTodayActiveUser(0L);
+            }
 
             // 待处理举报数量
-            vo.setPendingReportCount(reportMapper.selectCount(
-                    new LambdaQueryWrapper<Report>().eq(Report::getStatus, 0)));
+            try {
+                vo.setPendingReportCount(jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM report WHERE status = 0", Long.class));
+            } catch (Exception e) {
+                vo.setPendingReportCount(0L);
+            }
         } catch (Exception e) {
             vo.setTotalUserCount(0L);
+            vo.setTotalPostCount(0L);
+            vo.setTotalCommentCount(0L);
             vo.setTodayActiveUser(0L);
             vo.setPendingReportCount(0L);
+            log.error("获取仪表盘统计数据异常: {}", e.getMessage(), e);
         }
 
         return vo;
@@ -64,7 +91,7 @@ public class DashboardService {
         LocalDate startDate = endDate.minusDays(days - 1);
 
         try {
-            List<Map<String, Object>> rows = securityJdbcTemplate.queryForList(
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
                     "SELECT DATE(create_time) AS date, COUNT(DISTINCT user_id) AS count " +
                     "FROM operation_log WHERE create_time >= ? GROUP BY DATE(create_time) ORDER BY date",
                     LocalDateTime.of(startDate, LocalTime.MIN));
@@ -97,10 +124,19 @@ public class DashboardService {
     }
 
     public List<Map<String, Object>> getPostTrend(int days) {
+        try {
+            Result<List<Map<String, Object>>> result = postFeignClient.getPostTrend(days);
+            if (result != null && result.isSuccess() && result.getData() != null) {
+                return result.getData();
+            }
+        } catch (Exception e) {
+            log.warn("通过Feign获取帖子趋势失败，使用空数据: {}", e.getMessage());
+        }
+
+        // 降级：返回空数据
         List<Map<String, Object>> result = new ArrayList<>();
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(days - 1);
-
         for (int i = 0; i < days; i++) {
             LocalDate date = startDate.plusDays(i);
             Map<String, Object> dayData = new HashMap<>();
@@ -108,26 +144,22 @@ public class DashboardService {
             dayData.put("count", 0L);
             result.add(dayData);
         }
-
         return result;
     }
 
     public List<Map<String, Object>> getLatestReports() {
-        LambdaQueryWrapper<Report> wrapper = new LambdaQueryWrapper<Report>()
-                .orderByDesc(Report::getCreateTime)
-                .last("LIMIT 10");
-
-        List<Report> reports = reportMapper.selectList(wrapper);
+        String sql = "SELECT id, reporter_id, target_type, reason, status, create_time FROM report ORDER BY create_time DESC LIMIT 10";
+        List<Map<String, Object>> reports = jdbcTemplate.queryForList(sql);
         List<Map<String, Object>> result = new ArrayList<>();
 
-        for (Report report : reports) {
+        for (Map<String, Object> report : reports) {
             Map<String, Object> item = new HashMap<>();
-            item.put("id", report.getId());
-            item.put("reporterId", report.getReporterId());
-            item.put("targetType", report.getTargetType());
-            item.put("reason", report.getReason());
-            item.put("status", report.getStatus());
-            item.put("createTime", report.getCreateTime());
+            item.put("id", report.get("id"));
+            item.put("reporterId", report.get("reporter_id"));
+            item.put("targetType", report.get("target_type"));
+            item.put("reason", report.get("reason"));
+            item.put("status", report.get("status"));
+            item.put("createTime", report.get("create_time"));
             result.add(item);
         }
 

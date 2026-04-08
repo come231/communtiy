@@ -2,7 +2,8 @@
 SQLyog Ultimate v12.08 (64 bit)
 MySQL - 8.0.28 : Database - community_security
 *********************************************************************
-*/
+*/
+
 
 /*!40101 SET NAMES utf8 */;
 
@@ -110,10 +111,12 @@ DROP TABLE IF EXISTS `sensitive_word`;
 CREATE TABLE `sensitive_word` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `word` varchar(50) NOT NULL COMMENT '敏感词',
+  `status` tinyint DEFAULT '1' COMMENT '0禁用1正常',
   `type` tinyint DEFAULT '0' COMMENT '0违规1广告2政治3暴力4色情',
   `level` tinyint DEFAULT '1' COMMENT '1一般2严重3绝密',
   `replace_word` varchar(20) DEFAULT '***' COMMENT '替换词',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_word` (`word`),
   KEY `idx_type` (`type`)
@@ -131,8 +134,10 @@ CREATE TABLE `sys_config` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `config_key` varchar(50) NOT NULL COMMENT '配置键',
   `config_value` varchar(500) NOT NULL COMMENT '配置值',
+    `status` int DEFAULT 1,
   `config_type` varchar(20) DEFAULT 'string' COMMENT '类型',
   `description` varchar(100) DEFAULT '' COMMENT '描述',
+    `group_key` varchar(50) DEFAULT '' COMMENT '分组键',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

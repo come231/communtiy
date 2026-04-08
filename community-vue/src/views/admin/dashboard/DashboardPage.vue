@@ -203,7 +203,7 @@ onMounted(async () => {
     }
     
     // 获取待处理举报
-    const reportRes: any = await adminApi.reports({ status: 0, pageSize: 5 })
+    const reportRes: any = await adminApi.reports({ status: 0, size: 5 })
     if (reportRes?.records) {
       reports.value = reportRes.records.map((r: any) => ({
         id: r.id,
@@ -216,11 +216,11 @@ onMounted(async () => {
     }
     
     // 获取热门板块
-    const sectionRes: any = await adminApi.posts({ status: 1, pageSize: 100 })
+    const sectionRes: any = await adminApi.posts({ status: 1, size: 100 })
     if (sectionRes?.records) {
       // 简单统计各板块帖子数
       const sectionMap = new Map<string, number>()
-      reportRes?.records?.forEach((p: any) => {
+      sectionRes?.records?.forEach((p: any) => {
         const section = p.sectionName || '默认板块'
         sectionMap.set(section, (sectionMap.get(section) || 0) + 1)
       })

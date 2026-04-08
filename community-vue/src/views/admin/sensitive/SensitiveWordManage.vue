@@ -9,20 +9,22 @@
             type="text"
             placeholder="搜索敏感词..."
             class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-primary w-64"
+            @keyup.enter="handleSearch"
           />
           <select v-model="levelFilter" class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none">
-            <option value="">全部级别</option>
-            <option value="high">高危</option>
-            <option value="medium">中危</option>
-            <option value="low">低危</option>
+            <option :value="undefined">全部级别</option>
+            <option :value="1">高危</option>
+            <option :value="2">中危</option>
+            <option :value="3">低危</option>
           </select>
-          <button class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-blue-600">搜索</button>
+          <button @click="handleSearch" class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-blue-600">搜索</button>
+          <button @click="handleReset" class="px-4 py-2 border border-gray-200 text-gray-600 text-sm rounded-lg hover:bg-gray-50">重置</button>
         </div>
         <div class="flex items-center gap-3">
-          <button class="px-4 py-2 bg-gradient-to-r from-primary to-blue-600 text-white text-sm rounded-lg hover:shadow-lg hover:shadow-primary/25 flex items-center gap-1.5" @click="showAddDialog = true">
+          <button class="px-4 py-2 bg-gradient-to-r from-primary to-blue-600 text-white text-sm rounded-lg hover:shadow-lg hover:shadow-primary/25 flex items-center gap-1.5" @click="openAddDialog">
             <Plus class="w-4 h-4" />添加敏感词
           </button>
-          <button class="px-4 py-2 border border-gray-200 text-gray-600 text-sm rounded-lg hover:bg-gray-50 flex items-center gap-1.5">
+          <button class="px-4 py-2 border border-gray-200 text-gray-600 text-sm rounded-lg hover:bg-gray-50 flex items-center gap-1.5" @click="showBatchImportDialog = true">
             <Upload class="w-4 h-4" />批量导入
           </button>
         </div>
@@ -34,7 +36,7 @@
       <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center"><ShieldAlert class="w-5 h-5 text-red-500" /></div>
-          <div><p class="text-2xl font-bold text-gray-800">{{ totalWords }}</p><p class="text-xs text-gray-500">敏感词总量</p></div>
+          <div><p class="text-2xl font-bold text-gray-800">{{ total }}</p><p class="text-xs text-gray-500">敏感词总量</p></div>
         </div>
       </div>
       <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
@@ -55,7 +57,7 @@
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
       <table class="w-full text-sm">
         <thead class="bg-gray-50 border-b text-left text-xs text-gray-500 uppercase tracking-wider">
-          <tr><th class="px-5 py-3.5 w-16">#</th><th class="px-5 py-3.5">敏感词</th><th class="px-5 py-3.5">级别</th><th class="px-5 py-3.5">分类</th><th class="px-5 py-3.5">替换为</th><th class="px-5 py-3.5">命中次数</th><th class="px-5 py-3.5">状态</th><th class="px-5 py-3.5">操作</th></tr>
+          <tr><th class="px-5 py-3.5 w-16">#</th><th class="px-5 py-3.5">敏感词</th><th class="px-5 py-3.5">级别</th><th class="px-5 py-3.5">分类</th><th class="px-5 py-3.5">替换为</th><th class="px-5 py-3.5">状态</th><th class="px-5 py-3.5">操作</th></tr>
         </thead>
         <tbody class="divide-y divide-gray-50">
           <tr v-for="(word, index) in words" :key="word.id" class="hover:bg-gray-50/50 transition-colors">
@@ -68,11 +70,7 @@
             </td>
             <td class="px-5 py-3.5 text-xs text-gray-600">{{ word.category }}</td>
             <td class="px-5 py-3.5">
-              <code class="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded">{{ word.replaceWith || '-' }}</code>
-            </td>
-            <td class="px-5 py-3.5">
-              <span class="text-sm font-medium text-gray-800">{{ word.hitCount.toLocaleString() }}</span>
-              <span v-if="word.todayHits > 0" class="text-xs text-orange-500 ml-1">+{{ word.todayHits }}</span>
+              <code class="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded">{{ word.replacement || '-' }}</code>
             </td>
             <td class="px-5 py-3.5">
               <span :class="['text-xs px-2 py-1 rounded-full', word.enabled ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400']">
@@ -81,83 +79,290 @@
             </td>
             <td class="px-5 py-3.5">
               <div class="flex items-center gap-2">
-                <button class="text-primary hover:text-blue-700 text-xs font-medium">编辑</button>
-                <button class="text-red-500 hover:text-red-700 text-xs font-medium">删除</button>
+                <button @click="openEditDialog(word)" class="text-primary hover:text-blue-700 text-xs font-medium">编辑</button>
+                <button @click="handleDelete(word)" class="text-red-500 hover:text-red-700 text-xs font-medium">删除</button>
               </div>
             </td>
+          </tr>
+          <tr v-if="words.length === 0">
+            <td colspan="7" class="px-5 py-8 text-center text-gray-400">暂无敏感词数据</td>
           </tr>
         </tbody>
       </table>
       <div class="flex items-center justify-between px-5 py-4 border-t border-gray-100">
-        <span class="text-sm text-gray-500">共 {{ totalWords }} 条</span>
+        <span class="text-sm text-gray-500">共 {{ total }} 条</span>
         <div class="flex items-center gap-2">
-          <button class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40" disabled>上一页</button>
-          <span class="text-sm text-gray-600">1 / {{ Math.ceil(totalWords / pageSize) }}</span>
-          <button class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40" disabled>下一页</button>
+          <button @click="handlePageChange(currentPage - 1)" :disabled="currentPage <= 1" class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">上一页</button>
+          <span class="text-sm text-gray-600">{{ currentPage }} / {{ totalPages || 1 }}</span>
+          <button @click="handlePageChange(currentPage + 1)" :disabled="currentPage >= totalPages" class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">下一页</button>
         </div>
       </div>
     </div>
 
-    <!-- 添加弹窗 -->
-    <div v-if="showAddDialog" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" @click.self="showAddDialog = false">
-      <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">添加敏感词</h3>
-        <div class="space-y-4">
-          <div><label class="block text-sm font-medium text-gray-700 mb-1.5">敏感词</label>
-            <input type="text" placeholder="输入要过滤的词汇..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-primary" /></div>
-          <div><label class="block text-sm font-medium text-gray-700 mb-1.5">级别</label>
-            <select class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-primary">
-              <option value="high">高危 - 直接拒绝</option>
-              <option value="medium">中危 - 替换处理</option>
-              <option value="low">低危 - 标记警告</option>
-            </select>
-          </div>
-          <div><label class="block text-sm font-medium text-gray-700 mb-1.5">分类</label>
-            <select class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-primary">
-              <option>政治敏感</option><option>色情低俗</option><option>暴力恐吓</option><option>广告营销</option><option>人身攻击</option><option>其他</option>
-            </select>
-          </div>
-          <div><label class="block text-sm font-medium text-gray-700 mb-1.5">替换为（选填）</label>
-            <input type="text" placeholder="留空则使用默认替换符号 ***" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-primary" /></div>
-        </div>
-        <div class="flex justify-end gap-3 mt-6">
-          <button class="px-4 py-2 border border-gray-200 text-gray-600 text-sm rounded-lg hover:bg-gray-50" @click="showAddDialog = false">取消</button>
-          <button class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-blue-600" @click="showAddDialog = false">确认添加</button>
-        </div>
+    <!-- 添加/编辑弹窗 -->
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑敏感词' : '添加敏感词'" width="500px">
+      <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
+        <el-form-item label="敏感词" prop="word">
+          <el-input v-model="form.word" placeholder="请输入敏感词" />
+        </el-form-item>
+        <el-form-item label="级别" prop="level">
+          <el-select v-model="form.level" placeholder="请选择级别" class="w-full">
+            <el-option :value="1" label="高危 - 直接拒绝" />
+            <el-option :value="2" label="中危 - 替换处理" />
+            <el-option :value="3" label="低危 - 标记警告" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="分类" prop="category">
+          <el-select v-model="form.category" placeholder="请选择分类" class="w-full">
+            <el-option value="政治敏感" label="政治敏感" />
+            <el-option value="色情低俗" label="色情低俗" />
+            <el-option value="暴力恐吓" label="暴力恐吓" />
+            <el-option value="广告营销" label="广告营销" />
+            <el-option value="人身攻击" label="人身攻击" />
+            <el-option value="其他" label="其他" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="替换词" prop="replacement">
+          <el-input v-model="form.replacement" placeholder="留空使用 ***" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmit">确认</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量导入弹窗 -->
+    <el-dialog v-model="showBatchImportDialog" title="批量导入敏感词" width="600px">
+      <div class="space-y-4">
+        <p class="text-sm text-gray-600">每行一个敏感词，可选格式：<code class="bg-gray-100 px-1">敏感词|级别|分类</code></p>
+        <el-input
+          v-model="batchText"
+          type="textarea"
+          :rows="10"
+          placeholder="违禁词1|1|政治敏感&#10;违禁词2|2|广告营销&#10;违禁词3|3|其他"
+        />
+        <p class="text-xs text-gray-400">级别：1-高危，2-中危，3-低危</p>
       </div>
-    </div>
+      <template #footer>
+        <el-button @click="showBatchImportDialog = false">取消</el-button>
+        <el-button type="primary" @click="handleBatchImport">导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Upload, ShieldAlert, Eye, CheckCircle } from 'lucide-vue-next'
+import { adminApi } from '@/api'
+
+interface SensitiveWord {
+  id: number
+  word: string
+  level: number
+  category: string
+  replacement?: string
+  enabled: boolean
+  hitCount?: number
+  todayHits?: number
+}
 
 const searchWord = ref('')
-const levelFilter = ref('')
-const showAddDialog = ref(false)
-const totalWords = ref(356)
-const todayHits = ref(128)
-const todayNew = ref(12)
+const levelFilter = ref<number | undefined>(undefined)
+const currentPage = ref(1)
+const pageSize = ref(15)
+const total = ref(0)
+const totalPages = ref(1)
 const startIndex = ref(0)
-const pageSize = 15
+const todayHits = ref(0)
+const todayNew = ref(0)
+const words = ref<SensitiveWord[]>([])
 
-const words = [
-  { id: 1, word: '违禁词示例1', level: 'high', category: '政治敏感', replaceWith: '***', hitCount: 15234, todayHits: 45, enabled: true },
-  { id: 2, word: '广告推广', level: 'medium', category: '广告营销', replaceWith: '[广告]', hitCount: 8921, todayHits: 23, enabled: true },
-  { id: 3, word: '辱骂词汇', level: 'high', category: '人身攻击', replaceWith: '', hitCount: 5672, todayHits: 18, enabled: true },
-  { id: 4, word: '低俗用语', level: 'medium', category: '色情低俗', replaceWith: '**', hitCount: 3456, todayHits: 12, enabled: true },
-  { id: 5, word: '虚假宣传', level: 'low', category: '广告营销', replaceWith: null, hitCount: 2134, todayHits: 5, enabled: true },
-  { id: 6, word: '已禁用的词', level: 'low', category: '其他', replaceWith: null, hitCount: 0, todayHits: 0, enabled: false },
-  { id: 7, word: '暴力威胁', level: 'high', category: '暴力恐吓', replaceWith: '', hitCount: 987, todayHits: 3, enabled: true },
-]
+const dialogVisible = ref(false)
+const showBatchImportDialog = ref(false)
+const isEdit = ref(false)
+const formRef = ref()
 
-function getLevelClass(level: string): string {
-  const c: Record<string, string> = { high: 'bg-red-50 text-red-600', medium: 'bg-orange-50 text-orange-600', low: 'bg-yellow-50 text-yellow-600' }
+const form = reactive({
+  id: 0,
+  word: '',
+  level: 1,
+  category: '其他',
+  replacement: ''
+})
+
+const rules = {
+  word: [{ required: true, message: '请输入敏感词', trigger: 'blur' }],
+  level: [{ required: true, message: '请选择级别', trigger: 'change' }],
+  category: [{ required: true, message: '请选择分类', trigger: 'change' }]
+}
+
+let batchText = ref('')
+
+async function loadWords() {
+  try {
+    const res: any = await adminApi.sensitiveWords({
+      keyword: searchWord.value || undefined,
+      page: currentPage.value,
+      size: pageSize.value
+    })
+    
+    if (res?.records) {
+      words.value = res.records.map((w: any) => ({
+        ...w,
+        enabled: w.enabled !== false
+      }))
+      total.value = res.total || 0
+      totalPages.value = Math.ceil((res.total || 0) / pageSize.value)
+      startIndex.value = (currentPage.value - 1) * pageSize.value
+    } else if (Array.isArray(res)) {
+      words.value = res.map((w: any) => ({
+        ...w,
+        enabled: w.enabled !== false
+      }))
+      total.value = res.length
+      totalPages.value = 1
+    }
+  } catch (e: any) {
+    ElMessage.error('加载敏感词列表失败')
+    console.error(e)
+  }
+}
+
+function handleSearch() {
+  currentPage.value = 1
+  loadWords()
+}
+
+function handleReset() {
+  searchWord.value = ''
+  levelFilter.value = undefined
+  currentPage.value = 1
+  loadWords()
+}
+
+function handlePageChange(page: number) {
+  currentPage.value = page
+  loadWords()
+}
+
+function getLevelClass(level: number): string {
+  const c: Record<number, string> = {
+    1: 'bg-red-50 text-red-600',
+    2: 'bg-orange-50 text-orange-600',
+    3: 'bg-yellow-50 text-yellow-600'
+  }
   return c[level] || 'bg-gray-100'
 }
-function getLevelText(level: string): string {
-  const t: Record<string, string> = { high: '高危', medium: '中危', low: '低危' }
+
+function getLevelText(level: number): string {
+  const t: Record<number, string> = {
+    1: '高危',
+    2: '中危',
+    3: '低危'
+  }
   return t[level] || '未知'
 }
+
+function openAddDialog() {
+  isEdit.value = false
+  form.id = 0
+  form.word = ''
+  form.level = 1
+  form.category = '其他'
+  form.replacement = ''
+  dialogVisible.value = true
+}
+
+function openEditDialog(word: SensitiveWord) {
+  isEdit.value = true
+  form.id = word.id
+  form.word = word.word
+  form.level = word.level
+  form.category = word.category
+  form.replacement = word.replacement || ''
+  dialogVisible.value = true
+}
+
+async function handleSubmit() {
+  try {
+    await formRef.value?.validate()
+    const data = {
+      word: form.word,
+      level: form.level,
+      category: form.category,
+      replacement: form.replacement || undefined
+    }
+    
+    if (isEdit.value) {
+      await adminApi.updateSensitiveWord(form.id, data)
+      ElMessage.success('修改成功')
+    } else {
+      await adminApi.addSensitiveWord(data)
+      ElMessage.success('添加成功')
+    }
+    dialogVisible.value = false
+    loadWords()
+  } catch (e: any) {
+    if (e !== false) {
+      ElMessage.error(isEdit.value ? '修改失败' : '添加失败')
+    }
+  }
+}
+
+async function handleDelete(word: SensitiveWord) {
+  try {
+    await ElMessageBox.confirm(`确定要删除敏感词 "${word.word}" 吗？`, '确认删除', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await adminApi.deleteSensitiveWord(word.id)
+    ElMessage.success('删除成功')
+    loadWords()
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
+async function handleBatchImport() {
+  if (!batchText.value.trim()) {
+    ElMessage.warning('请输入要导入的敏感词')
+    return
+  }
+  
+  try {
+    const lines = batchText.value.trim().split('\n').filter(l => l.trim())
+    const words = lines.map(line => {
+      const parts = line.split('|')
+      return {
+        word: parts[0].trim(),
+        level: parseInt(parts[1]) || 1,
+        category: parts[2]?.trim() || '其他'
+      }
+    }).filter(w => w.word)
+    
+    if (words.length === 0) {
+      ElMessage.warning('没有有效的敏感词')
+      return
+    }
+    
+    await adminApi.batchImportSensitiveWords(words.map(w => w.word))
+    ElMessage.success(`成功导入 ${words.length} 个敏感词`)
+    showBatchImportDialog.value = false
+    batchText.value = ''
+    loadWords()
+  } catch (e: any) {
+    ElMessage.error('导入失败')
+    console.error(e)
+  }
+}
+
+onMounted(() => {
+  loadWords()
+})
 </script>

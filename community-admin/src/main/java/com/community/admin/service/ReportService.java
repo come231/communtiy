@@ -1,13 +1,12 @@
 package com.community.admin.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.community.admin.dto.HandleReportDTO;
 import com.community.admin.entity.Report;
-import com.community.admin.mapper.ReportMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -16,58 +15,68 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class ReportService extends ServiceImpl<ReportMapper, Report> {
+public class ReportService {
 
-    private final ReportMapper reportMapper;
+    private final JdbcTemplate jdbcTemplate;
 
     public IPage<Report> getReportList(int page, int size, Integer status) {
         Page<Report> pageObj = new Page<>(page, size);
-        LambdaQueryWrapper<Report> wrapper = new LambdaQueryWrapper<>();
+
+        StringBuilder sql = new StringBuilder("SELECT * FROM report WHERE 1=1 ");
+        StringBuilder countSql = new StringBuilder("SELECT COUNT(*) FROM report WHERE 1=1 ");
 
         if (status != null) {
-            wrapper.eq(Report::getStatus, status);
+            sql.append(" AND status = ? ");
+            countSql.append(" AND status = ? ");
         }
 
-        wrapper.orderByDesc(Report::getCreateTime);
-        return reportMapper.selectPage(pageObj, wrapper);
+        sql.append(" ORDER BY create_time DESC LIMIT ? OFFSET ?");
+
+        int offset = (page - 1) * size;
+        Object[] params;
+        Object[] countParams;
+
+        if (status != null) {
+            params = new Object[]{status, size, offset};
+            countParams = new Object[]{status};
+        } else {
+            params = new Object[]{size, offset};
+            countParams = new Object[]{};
+        }
+
+        Long total = jdbcTemplate.queryForObject(countSql.toString(), countParams, Long.class);
+        List<Report> records = jdbcTemplate.query(sql.toString(), params, new BeanPropertyRowMapper<>(Report.class));
+
+        pageObj.setRecords(records);
+        pageObj.setTotal(total != null ? total : 0);
+        return pageObj;
     }
 
     public boolean handleReport(HandleReportDTO dto, Long handlerId) {
-        Report report = reportMapper.selectById(dto.getReportId());
-        if (report == null) {
+        String querySql = "SELECT * FROM report WHERE id = ?";
+        List<Report> reports = jdbcTemplate.query(querySql, new BeanPropertyRowMapper<>(Report.class), dto.getReportId());
+
+        if (reports.isEmpty()) {
             throw new RuntimeException("举报记录不存在");
         }
 
+        Report report = reports.get(0);
         if (report.getStatus() != 0) {
             throw new RuntimeException("该举报已处理");
         }
 
-        report.setStatus(1); // 已处理
-        report.setHandlerId(handlerId);
-        report.setHandleResult(dto.getHandleResult());
-        report.setHandleTime(java.time.LocalDateTime.now());
+        String updateSql = "UPDATE report SET status = ?, handler_id = ?, handle_result = ?, handle_time = NOW() WHERE id = ?";
+        int updated = jdbcTemplate.update(updateSql, 1, handlerId, dto.getHandleResult(), dto.getReportId());
 
-        return reportMapper.updateById(report) > 0;
+        return updated > 0;
     }
 
     public Map<Integer, Long> getReportCount() {
         Map<Integer, Long> result = new HashMap<>();
-
-        // 待处理数量
-        result.put(0, reportMapper.selectCount(
-                new LambdaQueryWrapper<Report>().eq(Report::getStatus, 0)));
-
-        // 已处理数量
-        result.put(1, reportMapper.selectCount(
-                new LambdaQueryWrapper<Report>().eq(Report::getStatus, 1)));
-
-        // 已驳回数量
-        result.put(2, reportMapper.selectCount(
-                new LambdaQueryWrapper<Report>().eq(Report::getStatus, 2)));
-
-        // 总数
-        result.put(-1, reportMapper.selectCount(new LambdaQueryWrapper<>()));
-
+        result.put(0, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM report WHERE status = 0", Long.class));
+        result.put(1, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM report WHERE status = 1", Long.class));
+        result.put(2, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM report WHERE status = 2", Long.class));
+        result.put(-1, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM report", Long.class));
         return result;
     }
 }

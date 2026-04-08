@@ -4,7 +4,8 @@ import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.community.admin.dto.AdminLoginDTO;
 import com.community.admin.entity.SysAdmin;
-import com.community.admin.mapper.SysAdminMapper;
+
+import com.community.admin.mapper.admin.SysAdminMapper;
 import com.community.common.exception.BusinessException;
 import com.community.common.result.ResultCode;
 import com.community.common.util.JwtUtil;
@@ -12,14 +13,8 @@ import com.community.common.util.RedisUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -27,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class AdminAuthService implements UserDetailsService {
+public class AdminAuthService {
 
     private final SysAdminMapper sysAdminMapper;
     private final JwtUtil jwtUtil;
@@ -41,17 +36,6 @@ public class AdminAuthService implements UserDetailsService {
 
     @Value("${jwt.refresh-token-expire:259200000}")
     private long adminRefreshExpire;
-
-    @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        SysAdmin admin = sysAdminMapper.selectOne(
-                new LambdaQueryWrapper<SysAdmin>().eq(SysAdmin::getUsername, username));
-        if (admin == null || admin.getStatus() == 0) {
-            throw new UsernameNotFoundException("管理员不存在或已禁用");
-        }
-        return new User(admin.getUsername(), admin.getPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN")));
-    }
 
     /**
      * 管理员登录
@@ -182,7 +166,23 @@ public class AdminAuthService implements UserDetailsService {
         info.put("role", "ADMIN");
         return info;
     }
+    /**
+     * 拦截器自动刷新 token（新增）
+     */
+    public Map<String, Object> refreshTokenByAdminId(Long adminId) {
+        if (adminId == null) {
+            throw new BusinessException(ResultCode.FAILED, "未登录");
+        }
 
+        // 从 redis 取出 refreshToken
+        String refreshToken = redisUtil.get(ADMIN_REFRESH_TOKEN_PREFIX + adminId);
+        if (refreshToken == null) {
+            throw new BusinessException(ResultCode.FAILED, "刷新令牌不存在");
+        }
+
+        // 直接复用你已有的刷新逻辑
+        return refreshToken(refreshToken);
+    }
     /**
      * 检查令牌是否在黑名单
      */

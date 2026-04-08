@@ -4,14 +4,14 @@ import router from '../router'
 
 const request = axios.create({
   baseURL: '/api',
-  timeout: 15000,
+  withCredentials: true
 })
 
 // 请求拦截器
 request.interceptors.request.use(
   (config) => {
     const url = config.url || ''
-    if (url.startsWith('/admin')) {
+    if (url.startsWith('/admin')||url.startsWith('/dashboard')) {
       const adminToken = localStorage.getItem('adminToken')
       if (adminToken) {
         config.headers.Authorization = `Bearer ${adminToken}`
@@ -45,7 +45,7 @@ request.interceptors.response.use(
     // ======================
     // 管理员：正确响应头
     // ======================
-    if (url.startsWith('/admin')) {
+    if (url.startsWith('/admin')||url.startsWith('/dashboard')) {
       const newAccessToken = response.headers['new-access-token']
       const newRefreshToken = response.headers['new-refresh-token']
       if (newAccessToken) {
@@ -67,6 +67,13 @@ request.interceptors.response.use(
     if (data.code === 200) {
       return data.data
     }
+
+    // 已知的业务异常码：静默reject，不弹错误提示（调用方会自行处理UI状态回滚）
+    const silentCodes = [2008, 2009, 2010, 2011] // 已点赞/未点赞/已收藏/未收藏等
+    if (silentCodes.includes(data.code)) {
+      return Promise.reject(new Error(data.message || '操作无效'))
+    }
+
     ElMessage.error(data.message || '请求失败')
     return Promise.reject(new Error(data.message || '请求失败'))
   },
@@ -89,7 +96,9 @@ request.interceptors.response.use(
     } else if (error.response?.status === 429) {
       ElMessage.warning('操作过于频繁，请稍后再试')
     } else {
-      ElMessage.error(error.response?.data?.message || '网络错误')
+      console.log(error);
+      const errorMessage = error.response?.data?.message || error.message || '网络错误'
+      ElMessage.error(errorMessage)
     }
     return Promise.reject(error)
   }
