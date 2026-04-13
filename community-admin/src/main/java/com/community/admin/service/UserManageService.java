@@ -43,7 +43,13 @@ public class UserManageService {
             
             Map<String, Object> searchResult = result.getData();
             PageResult<Map<String, Object>> pageResult = new PageResult<>();
-            pageResult.setTotal((Long) searchResult.getOrDefault("total", 0L));
+            // ✅ 修复这里：安全转换数字类型，解决 Integer 转 Long 异常
+            Object totalObj = searchResult.getOrDefault("total", 0L);
+            long total = 0;
+            if (totalObj instanceof Number) {
+                total = ((Number) totalObj).longValue();
+            }
+            pageResult.setTotal(total);
             pageResult.setRecords((List<Map<String, Object>>) searchResult.getOrDefault("records", new ArrayList<>()));
             
             // 转换为IPage格式

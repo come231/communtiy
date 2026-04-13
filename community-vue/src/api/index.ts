@@ -349,8 +349,15 @@ export const adminApi = {
   },
   // 消息管理
   messages(params: { page?: number; size?: number; keyword?: string }) {
-    return request.get<any>('/admin/messages', { params })
+    return request.get('/admin/messages', { params })
   },
+
+  // 根据用户ID查询消息（新增）
+  messagesByUserId(userId: number, params: { page?: number; size?: number }) {
+    return request.get(`/admin/messages/user/${userId}`, { params })
+  },
+
+  // 删除消息（已修复）
   deleteMessage(id: number) {
     return request.delete(`/admin/messages/${id}`)
   },

@@ -61,4 +61,27 @@ public class ChatMsgController {
         private Long toUserId;
         private String content;
     }
+
+    @GetMapping("/admin/list")
+    @Operation(summary = "【管理员】查询所有聊天记录", description = "管理员查看全站聊天记录，支持分页")
+    public Result<PageResult<ChatMsg>> getAdminChatList(
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") int page,
+            @Parameter(description = "每页数量") @RequestParam(defaultValue = "20") int size) {
+        return Result.success(chatMsgService.getAdminChatList(page, size));
+    }
+
+    @GetMapping("/admin/user")
+    @Operation(summary = "【管理员】根据用户ID查询所有聊天记录")
+    public Result<PageResult<ChatMsg>> getAdminChatListByUserId(
+            @RequestParam Long userId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return Result.success(chatMsgService.getAdminChatListByUserId(userId, page, size));
+    }
+    @DeleteMapping("/admin/delete/{id}")
+    @Operation(summary = "【管理员】删除单条消息", description = "管理员删除任意聊天消息")
+    public Result<Void> adminDeleteMessage(@PathVariable Long id) {
+        chatMsgService.deleteMessage(id);
+        return Result.success();
+    }
 }

@@ -47,6 +47,16 @@ public class ChatMsgService {
     }
 
     /**
+     * 【管理员】获取所有聊天记录（不分用户）
+     */
+    public PageResult<ChatMsg> getAdminChatList(int page, int size) {
+        Page<ChatMsg> pageParam = new Page<>(page, size);
+        LambdaQueryWrapper<ChatMsg> wrapper = new LambdaQueryWrapper<>();
+        wrapper.orderByDesc(ChatMsg::getCreateTime); // 最新消息在前
+        Page<ChatMsg> result = chatMsgMapper.selectPage(pageParam, wrapper);
+        return new PageResult<>(result.getRecords(), result.getTotal(), result.getSize(), result.getCurrent());
+    }
+    /**
      * 获取最近联系人列表(LAST_MSG+UNREAD_COUNT)
      */
     public List<Map<String, Object>> getChatUserList() {
@@ -131,6 +141,26 @@ public class ChatMsgService {
         redisTemplate.delete(key);
     }
 
+    /**
+     * 【管理员】根据用户ID查询所有聊天记录（发出 + 收到）
+     */
+    public PageResult<ChatMsg> getAdminChatListByUserId(Long userId, int page, int size) {
+        Page<ChatMsg> pageParam = new Page<>(page, size);
+        LambdaQueryWrapper<ChatMsg> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ChatMsg::getFromUserId, userId)
+                .or()
+                .eq(ChatMsg::getToUserId, userId)
+                .orderByDesc(ChatMsg::getCreateTime);
+
+        Page<ChatMsg> result = chatMsgMapper.selectPage(pageParam, wrapper);
+        return new PageResult<>(result.getRecords(), result.getTotal(), result.getSize(), result.getCurrent());
+    }
+    /**
+     * 【管理员】删除消息
+     */
+    public void deleteMessage(Long id) {
+        chatMsgMapper.deleteById(id);
+    }
     /**
      * 获取未读私信总数
      */
