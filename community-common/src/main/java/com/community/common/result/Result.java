@@ -4,6 +4,9 @@ import lombok.Data;
 
 import java.io.Serializable;
 
+/**
+ * 全站统一 API 响应封装，与小程序 / Vue 端约定：HTTP 200 且 {@code code == 200} 表示业务成功，业务数据在 {@link #data}。
+ */
 @Data
 public class Result<T> implements Serializable {
 

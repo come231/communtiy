@@ -25,9 +25,8 @@ public class PostManageService {
      */
     public IPage<Map<String, Object>> getPostList(int page, int size, String keyword, Integer status) {
         try {
-            // 调用社区服务的Feign接口获取帖子列表
-            Result<PageResult<Map<String, Object>>> result = postFeignClient.listPosts(
-                    keyword, null, null, "latest", page, size);
+            Result<PageResult<Map<String, Object>>> result = postFeignClient.listPostsForAdmin(
+                    keyword, status, page, size);
             
             if (!result.isSuccess()) {
                 log.error("获取帖子列表失败: {}", result.getMessage());
@@ -53,7 +52,7 @@ public class PostManageService {
      */
     public Map<String, Object> getPostDetail(Long id) {
         try {
-            Result<Map<String, Object>> result = postFeignClient.getPostDetail(id);
+            Result<Map<String, Object>> result = postFeignClient.getPostDetailForAdmin(id);
             
             if (!result.isSuccess()) {
                 log.error("获取帖子详情失败: {}", result.getMessage());

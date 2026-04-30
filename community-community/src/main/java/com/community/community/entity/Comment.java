@@ -13,6 +13,10 @@ public class Comment {
     private Long postId;
     private Long userId;
     private String content;
+    /**
+     * 0=纯文本 1=含自定义图/表情
+     */
+    private Integer contentMode;
     private Long parentId;
     private Long replyUid;
     private Integer likeCount;

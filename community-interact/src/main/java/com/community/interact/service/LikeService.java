@@ -1,8 +1,11 @@
 package com.community.interact.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.community.common.annotation.OperationLog;
 import com.community.common.constant.CommonConstant;
+import com.community.common.dto.UserLikedPostItemDTO;
+import com.community.common.result.PageResult;
 import com.community.common.constant.MQConstant;
 import com.community.common.constant.RedisKeyConstant;
 import com.community.common.exception.BusinessException;
@@ -20,8 +23,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -39,6 +44,27 @@ public class LikeService {
                         .eq(LikeRecord::getUserId, userId)
                         .eq(LikeRecord::getType, type)
                         .eq(LikeRecord::getTargetId, targetId)) > 0;
+    }
+
+    /**
+     * 分页查询用户点赞的帖子记录（type=帖子），供用户服务等通过 Feign 调用
+     */
+    public PageResult<UserLikedPostItemDTO> pageUserPostLikes(Long userId, int pageNum, int pageSize) {
+        Page<LikeRecord> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<LikeRecord> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(LikeRecord::getUserId, userId)
+                .eq(LikeRecord::getType, CommonConstant.LIKE_TYPE_POST)
+                .orderByDesc(LikeRecord::getCreateTime);
+        Page<LikeRecord> result = likeRecordMapper.selectPage(page, wrapper);
+        List<UserLikedPostItemDTO> list = result.getRecords().stream()
+                .map(r -> {
+                    UserLikedPostItemDTO dto = new UserLikedPostItemDTO();
+                    dto.setPostId(r.getTargetId());
+                    dto.setLikeTime(r.getCreateTime());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+        return new PageResult<>(list, result.getTotal(), result.getSize(), result.getCurrent());
     }
 
     @OperationLog(module = "互动", operation = "点赞")

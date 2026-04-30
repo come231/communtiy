@@ -15,8 +15,10 @@ public class PostDraft {
     private String title;
     private String content;
     private String images;
+    private String coverImage;
     private String video;
     private String topicIds;
+    private Integer isAnonymous;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
     @TableField(fill = FieldFill.INSERT_UPDATE)

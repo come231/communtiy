@@ -26,12 +26,25 @@ CREATE TABLE ai_check (
                           content_id BIGINT DEFAULT NULL COMMENT '内容ID',
                           original_content TEXT NOT NULL COMMENT '原始内容',
                           check_result INT DEFAULT 0 COMMENT '审核结果: 0正常 1敏感 2违规',
+                          violation_percent DECIMAL(6,2) DEFAULT NULL COMMENT 'AI综合违规程度0-100',
                           sensitive_words VARCHAR(500) DEFAULT NULL COMMENT '敏感词列表',
                           ai_suggestion VARCHAR(1000) DEFAULT NULL COMMENT 'AI建议',
                           create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                           INDEX idx_content (content_type, content_id),
                           INDEX idx_result (check_result)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI内容审核表';
+
+-- 帖子 AI 审核规则（拼入审核提示词）
+CREATE TABLE post_review_rule (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    rule_name VARCHAR(200) DEFAULT NULL COMMENT '规则名称',
+    rule_text TEXT NOT NULL COMMENT '规则正文',
+    sort_order INT NOT NULL DEFAULT 0 COMMENT '排序',
+    status INT NOT NULL DEFAULT 1 COMMENT '1启用 0禁用',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status_sort (status, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='帖子AI审核规则配置';
 
 -- AI摘要表
 CREATE TABLE ai_summary (

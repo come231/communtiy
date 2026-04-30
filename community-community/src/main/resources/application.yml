@@ -36,3 +36,11 @@ jwt:
 logging:
   level:
     com.community.community.mapper: DEBUG
+
+# 与 community-file 的 community.file.gc.internal-token 保持一致；未启用不影响发帖
+community:
+  file-gc:
+    enabled: false
+    internal-token: ${FILE_GC_INTERNAL_TOKEN:}
+    # min-age-hours: 24
+    # cron: "0 0 0 * * ?"

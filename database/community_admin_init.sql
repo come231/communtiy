@@ -49,7 +49,9 @@ CREATE TABLE IF NOT EXISTS `sys_admin_log` (
   KEY `idx_module` (`module`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='管理员操作日志表';
 
--- 系统配置表
+-- 系统配置表（旧版：主键 id 为配置键字符串，与 Java SysConfig 使用的 community_admin.sql 结构不兼容）
+-- 若需与管理端代码一致，请改用 database/community_admin.sql 中的 sys_config 定义，
+-- 或执行 database/sys_config_migrate_legacy_varchar_id_to_standard.sql 迁移后再启动服务。
 CREATE TABLE IF NOT EXISTS `sys_config` (
   `id` VARCHAR(50) NOT NULL COMMENT '配置Key',
   `config_value` TEXT DEFAULT NULL COMMENT '配置值',

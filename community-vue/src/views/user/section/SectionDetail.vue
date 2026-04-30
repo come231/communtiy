@@ -1,120 +1,249 @@
 <template>
-  <div class="min-h-screen bg-[#F5F7FA] pt-20 pb-8">
-    <div class="max-w-6xl mx-auto px-4">
-      <!-- 板块头部信息 -->
-      <div v-if="!loading && section" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-        <div class="flex items-start gap-5">
-          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br flex items-center justify-center text-2xl shadow-inner text-white"
-            :style="{ background: getGradient(section.sectionId || section.id) }">
-            {{ section.icon || (section.name || '').charAt(0) }}
-          </div>
-          <div class="flex-1">
-            <h1 class="text-xl font-bold text-gray-800 mb-1">{{ section.name }}</h1>
-            <p class="text-sm text-gray-500 mb-3">{{ section.intro || '暂无描述' }}</p>
-            <div class="flex items-center gap-4 text-xs text-gray-400">
-              <span class="flex items-center gap-1">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
-                {{ section.postCount || 0 }} 帖子
-              </span>
-              <span v-if="moderator" class="flex items-center gap-1">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                版主: {{ moderator.nickname || moderator.username }}
-              </span>
-            </div>
-          </div>
-          <button @click="showCreateDialog = true" class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-blue-600 transition-colors flex-shrink-0">
-            创建板块
-          </button>
-        </div>
-      </div>
+  <div class="min-h-[calc(100vh-4.5rem)] bg-gradient-to-br from-[#f0f4ff] to-[#f8faff] pb-10 pt-6">
+    <div class="container mx-auto px-4 max-w-5xl">
+      <div v-if="loading" class="user-surface-card p-12 text-center text-[#6b7280]">加载中…</div>
 
-      <!-- 帖子列表 -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="font-semibold text-gray-800">板块帖子</h2>
-          <span class="text-sm text-gray-400">共 {{ total }} 条</span>
-        </div>
-        <div v-loading="postsLoading" class="space-y-3">
-          <div v-for="post in posts" :key="post.id"
-            @click="$router.push(`/post/${post.id}`)"
-            class="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group">
-            <div class="flex-1 min-w-0">
-              <h3 class="text-sm font-medium text-gray-800 group-hover:text-primary transition-colors truncate">{{ post.title }}</h3>
-              <div class="flex items-center gap-3 text-xs text-gray-400 mt-1">
-                <span>{{ post.authorName || '匿名' }}</span>
-                <span>{{ formatTime(post.createTime) }}</span>
+      <template v-else-if="section">
+        <div class="user-surface-card p-6 mb-6">
+          <div class="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+            <div class="flex items-start gap-4 min-w-0">
+              <div
+                class="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold text-white shrink-0 shadow-lg"
+                :style="{ background: getGradient(sid) }"
+              >
+                {{ (section.name || '?').charAt(0) }}
+              </div>
+              <div class="min-w-0">
+                <h1 class="text-2xl font-bold text-[#1f2937] mb-1 truncate">{{ section.name }}</h1>
+                <p class="text-sm text-[#6b7280] line-clamp-2 leading-relaxed">{{ section.intro || '暂无描述' }}</p>
+                <div class="flex flex-wrap gap-3 mt-3 text-sm text-[#4b5563]">
+                  <span class="inline-flex items-baseline gap-1 rounded-lg bg-[#f0f4ff] px-2 py-0.5 text-[#6366f1]"
+                    ><i class="fa fa-file-text-o opacity-80" />{{ section.postCount ?? 0 }} 帖子</span
+                  >
+                  <span class="inline-flex items-baseline gap-1 rounded-lg bg-[#f0f4ff] px-2 py-0.5 text-[#6366f1]"
+                    ><i class="fa fa-users opacity-80" />{{ memberCount }} 成员</span
+                  >
+                  <span v-if="moderatorUser" class="inline-flex items-baseline gap-1 text-[#6b7280]"
+                    ><i class="fa fa-user-circle-o opacity-80" />版主 {{ moderatorUser.nickname || moderatorUser.username }}</span
+                  >
+                </div>
               </div>
             </div>
-            <div class="flex items-center gap-4 text-xs text-gray-400 flex-shrink-0">
-              <span class="flex items-center gap-1">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                {{ post.viewCount || 0 }}
-              </span>
-              <span class="flex items-center gap-1">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-                {{ post.likeCount || 0 }}
-              </span>
-              <span class="flex items-center gap-1">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                {{ post.commentCount || 0 }}
-              </span>
-            </div>
-          </div>
-          <div v-if="!postsLoading && posts.length === 0" class="text-center py-12 text-gray-400">
-            <p class="text-sm">该板块暂无帖子</p>
-          </div>
-        </div>
-        <!-- 分页 -->
-        <div v-if="totalPages > 1" class="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-gray-100">
-          <button @click="currentPage > 1 && (currentPage--, loadPosts())" :disabled="currentPage <= 1" class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">上一页</button>
-          <span class="text-sm text-gray-600">{{ currentPage }} / {{ totalPages }}</span>
-          <button @click="currentPage < totalPages && (currentPage++, loadPosts())" :disabled="currentPage >= totalPages" class="px-3 py-1.5 text-sm border border-gray-200 rounded-lg disabled:opacity-40 hover:bg-gray-50">下一页</button>
-        </div>
-      </div>
 
-      <!-- 创建板块对话框 -->
-      <div v-if="showCreateDialog" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" @click.self="showCreateDialog = false">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">创建新板块</h3>
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm text-gray-600 mb-1">板块名称</label>
-              <input v-model="newSection.name" type="text" placeholder="输入板块名称" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-primary" />
-            </div>
-            <div>
-              <label class="block text-sm text-gray-600 mb-1">板块描述</label>
-              <textarea v-model="newSection.description" placeholder="输入板块描述" rows="3" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-primary resize-none"></textarea>
+            <div class="flex flex-wrap gap-2 justify-end">
+              <button
+                v-if="canPost"
+                type="button"
+                class="btn-gradient inline-flex items-center gap-1.5 px-4 py-2 text-sm"
+                @click="goCreatePost"
+              >
+                <i class="fa fa-plus" />发布新帖
+              </button>
+              <button
+                v-if="canPost"
+                type="button"
+                class="px-4 py-2 rounded-xl text-sm text-[#6366f1] border border-[#e5e7eb] bg-white hover:bg-[#f8faff]"
+                @click="openAttachDialog"
+              >
+                关联已有帖子
+              </button>
+              <button
+                v-if="canPost && ctx?.moderator"
+                type="button"
+                class="px-4 py-2 rounded-xl text-sm text-amber-800 bg-amber-50 border border-amber-200 hover:bg-amber-100"
+                @click="openApproveDialog"
+              >
+                审批申请
+              </button>
+              <button
+                type="button"
+                class="px-4 py-2 rounded-xl text-sm text-[#1f2937] border border-[#e5e7eb] bg-white hover:bg-[#f9fafb]"
+                @click="openMembersDialog"
+              >
+                成员
+              </button>
+              <button
+                v-if="showJoinButton"
+                type="button"
+                class="px-4 py-2 rounded-xl text-sm font-medium bg-[#eef2ff] text-[#6366f1] border border-[#c7d2fe] hover:bg-[#e0e7ff]"
+                @click="applyJoin"
+              >
+                申请加入
+              </button>
+              <span v-if="joinPending" class="px-4 py-2 rounded-xl text-sm text-amber-800 bg-amber-50 border border-amber-200"
+                >审核中</span
+              >
             </div>
           </div>
-          <div class="flex justify-end gap-3 mt-6">
-            <button @click="showCreateDialog = false" class="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">取消</button>
-            <button @click="createSection" :disabled="creating" class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-blue-600 disabled:opacity-50">创建</button>
+          <p v-if="!canPost && userStore.isLoggedIn && memberOnly" class="mt-4 text-xs text-rose-600">
+            本板块仅成员可发帖，请先申请加入并通过版主审核。
+          </p>
+        </div>
+
+        <div class="user-surface-card p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold text-[#1f2937]">板块帖子</h2>
+            <span class="text-sm text-[#9ca3af]">共 {{ total }} 条</span>
+          </div>
+          <div v-loading="postsLoading" class="space-y-3">
+            <div
+              v-for="(post, pidx) in posts"
+              :key="postRowId(post) || `sd-${pidx}`"
+              class="rounded-xl p-4 border border-[#e5e7eb] bg-[#fafbff] hover:border-[#c7d2fe] hover:shadow-md cursor-pointer transition-all"
+              @click="$router.push(`/post/${postRowId(post)}`)"
+            >
+              <h3 class="text-base font-semibold text-[#1f2937] truncate">{{ post.title }}</h3>
+              <div class="flex flex-wrap items-center gap-2 mt-2 text-xs text-[#6b7280]">
+                <span>{{ post.authorName || '用户' }}</span>
+                <span>·</span>
+                <span>{{ formatTime(post.createTime) }}</span>
+                <span class="ml-auto flex gap-3">
+                  <span><i class="fa fa-eye mr-0.5" />{{ post.viewCount ?? 0 }}</span>
+                  <span><i class="fa fa-heart mr-0.5" />{{ post.likeCount ?? 0 }}</span>
+                </span>
+              </div>
+            </div>
+            <div v-if="!postsLoading && posts.length === 0" class="text-center py-12 text-[#9ca3af] text-sm">暂无帖子</div>
+          </div>
+          <div v-if="totalPages > 1" class="flex justify-center gap-3 mt-6 pt-4 border-t border-[#e5e7eb]">
+            <button
+              type="button"
+              class="px-4 py-2 text-sm rounded-full border border-[#e5e7eb] bg-white text-[#1f2937] hover:bg-[#f9fafb] disabled:opacity-40"
+              :disabled="currentPage <= 1"
+              @click="currentPage > 1 && pagePrev()"
+            >
+              上一页
+            </button>
+            <span class="text-sm text-[#6b7280] py-2">{{ currentPage }} / {{ totalPages }}</span>
+            <button
+              type="button"
+              class="px-4 py-2 text-sm rounded-full border border-[#e5e7eb] bg-white text-[#1f2937] hover:bg-[#f9fafb] disabled:opacity-40"
+              :disabled="currentPage >= totalPages"
+              @click="currentPage < totalPages && pageNext()"
+            >
+              下一页
+            </button>
           </div>
         </div>
-      </div>
+      </template>
+
+      <!-- 成员 -->
+      <el-dialog v-model="membersVisible" title="板块成员" width="520px" destroy-on-close>
+        <div v-loading="membersLoading" class="space-y-2 max-h-96 overflow-y-auto">
+          <div
+            v-for="m in members"
+            :key="m.userId"
+            class="flex items-center justify-between gap-2 p-3 rounded-xl bg-[#f9fafb] border border-[#e5e7eb]"
+          >
+            <div class="min-w-0">
+              <div class="text-sm font-medium text-[#1f2937] truncate">{{ memberNames[m.userId] || '用户' + m.userId }}</div>
+              <div class="text-xs text-[#9ca3af]">角色 {{ roleLabel(m.role) }} · {{ formatTime(m.joinTime) }}</div>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <el-button size="small" @click="goMessage(m.userId)">私信</el-button>
+              <el-button
+                v-if="ctx?.moderator && moderatorId !== m.userId"
+                type="danger"
+                size="small"
+                plain
+                @click="kick(m.userId)"
+                >移出</el-button
+              >
+            </div>
+          </div>
+          <div v-if="!membersLoading && members.length === 0" class="text-center text-slate-400 py-8">暂无成员数据</div>
+        </div>
+      </el-dialog>
+
+      <!-- 审批 -->
+      <el-dialog v-model="approveVisible" title="待审加入申请" width="520px" destroy-on-close>
+        <div v-loading="pendingLoading" class="space-y-2 max-h-96 overflow-y-auto">
+          <div
+            v-for="req in pending"
+            :key="req.id"
+            class="flex items-center justify-between gap-2 p-3 rounded-xl bg-[#f9fafb] border border-[#e5e7eb]"
+          >
+            <div class="text-sm text-[#1f2937]">用户 {{ req.userId }} {{ applicantNames[req.userId] ? ' · ' + applicantNames[req.userId] : '' }}</div>
+            <div class="flex gap-1">
+              <el-button size="small" type="primary" @click="approve(req.userId)">通过</el-button>
+              <el-button size="small" @click="reject(req.userId)">拒绝</el-button>
+            </div>
+          </div>
+          <div v-if="!pendingLoading && pending.length === 0" class="text-center text-slate-400 py-8">暂无待审申请</div>
+        </div>
+      </el-dialog>
+
+      <!-- 关联已有帖子 -->
+      <el-dialog v-model="attachVisible" title="将我的帖子关联到本板块" width="560px" destroy-on-close @open="loadMyPosts">
+        <div v-loading="myPostsLoading" class="space-y-2 max-h-80 overflow-y-auto">
+          <div
+            v-for="p in myPosts"
+            :key="p.postId"
+            class="flex items-center justify-between gap-2 p-3 rounded-xl bg-[#f9fafb] border border-[#e5e7eb] cursor-pointer hover:border-[#818cf8]"
+            @click="attachPost(p)"
+          >
+            <span class="text-sm text-[#1f2937] truncate">{{ p.title }}</span>
+            <span class="text-xs text-[#6366f1]">点击关联</span>
+          </div>
+          <div v-if="!myPostsLoading && myPosts.length === 0" class="text-center text-slate-400 py-8">暂无可用帖子</div>
+        </div>
+      </el-dialog>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { sectionApi, postApi, userApi } from '../../../api'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { useUserStore } from '../../../store/user'
+import { postRowId } from '../../../utils/postRowId'
 
 const route = useRoute()
+const router = useRouter()
+const userStore = useUserStore()
+
 const loading = ref(true)
 const postsLoading = ref(false)
 const section = ref<any>(null)
-const moderator = ref<any>(null)
+const ctx = ref<any>(null)
+const moderatorUser = ref<any>(null)
 const posts = ref<any[]>([])
 const total = ref(0)
 const totalPages = ref(1)
 const currentPage = ref(1)
 
-const showCreateDialog = ref(false)
-const creating = ref(false)
-const newSection = ref({ name: '', description: '' })
+const membersVisible = ref(false)
+const membersLoading = ref(false)
+const members = ref<any[]>([])
+const memberNames = ref<Record<number, string>>({})
+
+const approveVisible = ref(false)
+const pendingLoading = ref(false)
+const pending = ref<any[]>([])
+const applicantNames = ref<Record<number, string>>({})
+
+const attachVisible = ref(false)
+const myPostsLoading = ref(false)
+const myPosts = ref<any[]>([])
+
+const sid = computed(() => Number(section.value?.sectionId ?? section.value?.id ?? route.params.id))
+
+const moderatorId = computed(() => section.value?.moderatorId ?? null)
+const memberCount = computed(() => ctx.value?.memberCount ?? 0)
+const canPost = computed(() => !!ctx.value?.canPost)
+const joinPending = computed(() => !!ctx.value?.joinPending)
+const memberOnly = computed(() => section.value?.memberOnlyPost === 1)
+
+const showJoinButton = computed(() => {
+  if (!userStore.isLoggedIn) return false
+  if (!memberOnly.value) return false
+  if (ctx.value?.moderator) return false
+  if (ctx.value?.member) return false
+  if (joinPending.value) return false
+  return true
+})
 
 const gradients = [
   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -128,72 +257,219 @@ function getGradient(id: number): string {
   return gradients[(id || 0) % gradients.length]
 }
 
-async function loadSection() {
+async function loadContext() {
   const id = Number(route.params.id)
+  loading.value = true
   try {
-    const res: any = await sectionApi.detail(id)
-    section.value = res
-    if (res.moderatorId) {
+    const c = await sectionApi.context(id)
+    ctx.value = c
+    section.value = c.section
+    if (moderatorId.value) {
       try {
-        moderator.value = await userApi.info(res.moderatorId)
-      } catch { /* ignore */ }
+        moderatorUser.value = await userApi.info(moderatorId.value)
+      } catch {
+        moderatorUser.value = null
+      }
     }
-  } catch (e) {
+  } catch {
     ElMessage.error('板块不存在')
+    section.value = null
   } finally {
     loading.value = false
   }
 }
 
 async function loadPosts() {
-  postsLoading.value = true
   const id = Number(route.params.id)
+  postsLoading.value = true
   try {
     const res: any = await postApi.list({ sectionId: id, pageNum: currentPage.value, pageSize: 10 })
-    const list = res.records || res || []
+    const list = res.records || []
     posts.value = list.map((p: any) => ({ ...p, id: p.postId }))
-    total.value = res.total || list.length
-    totalPages.value = Math.ceil(total.value / 10)
-  } catch (e) {
-    console.error(e)
+    total.value = res.total ?? list.length
+    totalPages.value = Math.max(1, Math.ceil((res.total || 0) / 10))
+  } catch {
     posts.value = []
   } finally {
     postsLoading.value = false
   }
 }
 
-async function createSection() {
-  if (!newSection.value.name.trim()) {
-    ElMessage.warning('请输入板块名称')
+function pagePrev() {
+  currentPage.value--
+  loadPosts()
+}
+function pageNext() {
+  currentPage.value++
+  loadPosts()
+}
+
+function goCreatePost() {
+  router.push(`/post/create?sectionId=${sid.value}`)
+}
+
+async function applyJoin() {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
     return
   }
-  creating.value = true
   try {
-    await sectionApi.create({ name: newSection.value.name, intro: newSection.value.description })
-    ElMessage.success('板块创建成功')
-    showCreateDialog.value = false
-    newSection.value = { name: '', description: '' }
-  } catch (e: any) {
-    ElMessage.error('创建失败')
-  } finally {
-    creating.value = false
+    await sectionApi.applyJoin(sid.value)
+    ElMessage.success('已提交申请')
+    await loadContext()
+  } catch {
+    /* interceptor */
   }
 }
 
-function formatTime(time: string): string {
+async function openMembersDialog() {
+  membersVisible.value = true
+  await reloadMembersList()
+}
+
+function roleLabel(role: number) {
+  if (role === 2) return '版主'
+  if (role === 1) return '管理员'
+  return '成员'
+}
+
+function goMessage(uid: number) {
+  const name = memberNames.value[uid] || ''
+  router.push({ path: '/chat', query: { userId: String(uid), nickName: name } })
+}
+
+async function kick(uid: number) {
+  try {
+    await ElMessageBox.confirm('确定将该用户移出板块？', '确认', { type: 'warning' })
+    await sectionApi.kickMember(sid.value, uid)
+    ElMessage.success('已移出')
+    await reloadMembersList()
+    await loadContext()
+  } catch {
+    /* cancel */
+  }
+}
+
+async function reloadMembersList() {
+  membersLoading.value = true
+  memberNames.value = {}
+  try {
+    const res: any = await sectionApi.members(sid.value, 1, 50)
+    members.value = res.records || []
+    for (const m of members.value) {
+      try {
+        const u = await userApi.info(m.userId)
+        memberNames.value[m.userId] = u.nickname || u.username
+      } catch {
+        /* ignore */
+      }
+    }
+  } catch {
+    members.value = []
+  } finally {
+    membersLoading.value = false
+  }
+}
+
+async function openApproveDialog() {
+  approveVisible.value = true
+  pendingLoading.value = true
+  applicantNames.value = {}
+  try {
+    pending.value = await sectionApi.joinRequests(sid.value)
+    for (const r of pending.value) {
+      try {
+        const u = await userApi.info(r.userId)
+        applicantNames.value[r.userId] = u.nickname || u.username
+      } catch {
+        /* */
+      }
+    }
+  } catch {
+    pending.value = []
+  } finally {
+    pendingLoading.value = false
+  }
+}
+
+async function approve(uid: number) {
+  try {
+    await sectionApi.approveJoin(sid.value, uid)
+    ElMessage.success('已通过')
+    await openApproveDialog()
+    await loadContext()
+  } catch {
+    /* */
+  }
+}
+
+async function reject(uid: number) {
+  try {
+    await sectionApi.rejectJoin(sid.value, uid)
+    ElMessage.success('已拒绝')
+    await openApproveDialog()
+  } catch {
+    /* */
+  }
+}
+
+async function loadMyPosts() {
+  myPostsLoading.value = true
+  try {
+    const res: any = await postApi.my(1, 50)
+    const cur = sid.value
+    const rows = (res.records || []).filter((p: any) => (p.sectionId || 0) !== cur)
+    myPosts.value = rows
+  } catch {
+    myPosts.value = []
+  } finally {
+    myPostsLoading.value = false
+  }
+}
+
+function openAttachDialog() {
+  if (!canPost.value) {
+    ElMessage.warning('无权限在本板块关联帖子')
+    return
+  }
+  attachVisible.value = true
+}
+
+async function attachPost(p: any) {
+  try {
+    const detail = await postApi.detail(p.postId)
+    await postApi.update(p.postId, {
+      sectionId: sid.value,
+      title: detail.title,
+      content: detail.content || '',
+      images: detail.images,
+      video: (detail as any).video,
+      isAnonymous: !!detail.isAnonymous,
+      tags: (detail as any).tags,
+    })
+    ElMessage.success('已关联到本板块')
+    attachVisible.value = false
+    await loadPosts()
+    await loadContext()
+  } catch {
+    ElMessage.error('关联失败')
+  }
+}
+
+function formatTime(time: string) {
   if (!time) return '-'
-  const now = new Date().getTime()
-  const t = new Date(time).getTime()
-  const diff = now - t
-  if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
-  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
-  if (diff < 604800000) return Math.floor(diff / 86400000) + '天前'
   return time.split(' ')[0]
 }
 
-onMounted(() => {
-  loadSection()
+onMounted(async () => {
+  await loadContext()
   loadPosts()
 })
 </script>
+
+<style scoped>
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+</style>

@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+import com.community.user.service.UserTagService;
+
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
@@ -29,6 +31,7 @@ public class UserController {
     private final UserService userService;
     private final FollowService followService;
     private final CheckinService checkinService;
+    private final UserTagService userTagService;
 
     @PostMapping("/login")
     @Operation(summary = "用户登录", description = "用户名密码登录，返回Token和用户信息")
@@ -110,14 +113,14 @@ public class UserController {
 
     @GetMapping("/following/{userId}")
     @Operation(summary = "获取关注列表", description = "获取指定用户的关注列表")
-    public Result<List<Long>> getFollowingList(@PathVariable Long userId) {
-        return Result.success(followService.getFollowingList(userId));
+    public Result<List<FollowUserVO>> getFollowingList(@PathVariable Long userId) {
+        return Result.success(followService.getFollowingList(userId, ContextHolder.getUserId()));
     }
 
     @GetMapping("/followers/{userId}")
     @Operation(summary = "获取粉丝列表", description = "获取指定用户的粉丝列表")
-    public Result<List<Long>> getFollowersList(@PathVariable Long userId) {
-        return Result.success(followService.getFollowersList(userId));
+    public Result<List<FollowUserVO>> getFollowersList(@PathVariable Long userId) {
+        return Result.success(followService.getFollowersList(userId, ContextHolder.getUserId()));
     }
 
     @GetMapping("/isFollowing/{userId}")
@@ -137,5 +140,65 @@ public class UserController {
     @Operation(summary = "签到状态", description = "获取用户今日签到状态")
     public Result<Map<String, Object>> checkinStatus() {
         return Result.success(checkinService.getCheckinStatus(ContextHolder.getUserId()));
+    }
+
+    // ==================== 个人标签 ====================
+
+    @GetMapping("/tags")
+    @Operation(summary = "获取用户标签", description = "获取当前用户的个人标签列表")
+    public Result<List<String>> getUserTags() {
+        return Result.success(userTagService.getUserTags(ContextHolder.getUserId()));
+    }
+
+    @PutMapping("/tags")
+    @OperationLog(module = "用户", operation = "更新个人标签")
+    @Operation(summary = "更新用户标签", description = "更新当前用户的个人标签列表")
+    public Result<Void> updateUserTags(@RequestBody List<String> tags) {
+        userTagService.updateUserTags(ContextHolder.getUserId(), tags);
+        return Result.success();
+    }
+
+    // ==================== 隐私设置 ====================
+
+    @GetMapping("/privacy")
+    @Operation(summary = "获取隐私设置", description = "获取当前用户的隐私设置")
+    public Result<Map<String, Object>> getPrivacySettings() {
+        return Result.success(userService.getPrivacySettings(ContextHolder.getUserId()));
+    }
+
+    @PutMapping("/privacy")
+    @OperationLog(module = "用户", operation = "修改隐私设置")
+    @Operation(summary = "更新隐私设置", description = "更新喜欢列表和收藏列表的可见性")
+    public Result<Void> updatePrivacySettings(@RequestBody Map<String, Integer> settings) {
+        userService.updatePrivacySettings(ContextHolder.getUserId(), settings);
+        return Result.success();
+    }
+
+    // ==================== 喜欢列表 ====================
+
+    @GetMapping("/likes")
+    @Operation(summary = "我的喜欢列表", description = "获取当前用户点赞的帖子列表")
+    public Result<PageResult<Map<String, Object>>> getMyLikedPosts(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        return Result.success(userService.getUserLikedPosts(ContextHolder.getUserId(), ContextHolder.getUserId(), pageNum, pageSize));
+    }
+
+    @GetMapping("/{userId}/likes")
+    @Operation(summary = "用户喜欢列表", description = "获取指定用户的点赞帖子列表（受隐私设置限制）")
+    public Result<PageResult<Map<String, Object>>> getUserLikedPosts(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        return Result.success(userService.getUserLikedPosts(ContextHolder.getUserId(), userId, pageNum, pageSize));
+    }
+
+    // ==================== 内部接口（服务间调用） ====================
+
+    @PostMapping("/internal/like-count")
+    @Operation(summary = "内部：更新获赞数", description = "服务间调用，更新用户获赞总数")
+    public Result<Void> updateLikeCountInternal(@RequestParam Long userId, @RequestParam Integer delta) {
+        userService.updateLikeCount(userId, delta);
+        return Result.success();
     }
 }

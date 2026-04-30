@@ -13,6 +13,8 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -80,6 +82,23 @@ public class SensitiveWordService {
                .orderByDesc(SensitiveWord::getCreateTime);
 
         return sensitiveWordMapper.selectPage(pageObj, wrapper);
+    }
+
+    /**
+     * 启用的敏感词全量（供社区等服务构建内存词表）
+     */
+    public List<String> listAllActiveWordStrings() {
+        List<SensitiveWord> list = sensitiveWordMapper.selectList(
+                new LambdaQueryWrapper<SensitiveWord>()
+                        .eq(SensitiveWord::getStatus, 1)
+                        .select(SensitiveWord::getWord));
+        return list.stream()
+                .map(SensitiveWord::getWord)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     @Transactional

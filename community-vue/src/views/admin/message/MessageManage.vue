@@ -88,14 +88,13 @@ const keyword = ref('')
 // 加载消息列表（已修复）
 async function loadMessages() {
   try {
-    const res = await adminApi.messages({
+    const res: any = await adminApi.messages({
       page: currentPage.value,
       size: 20,
       keyword: keyword.value || undefined
     })
 
-    // ✅ 关键修复：去掉多余的 .data
-    if (res) {
+    if (res && typeof res === 'object') {
       messages.value = res.records || []
       total.value = res.total || 0
       totalPages.value = Math.ceil((total.value) / 20)

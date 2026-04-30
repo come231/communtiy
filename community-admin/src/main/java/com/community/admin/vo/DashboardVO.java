@@ -11,9 +11,19 @@ public class DashboardVO {
     private Long totalUserCount;
     private Long totalPostCount;
     private Long totalCommentCount;
+    private Long todayNewUsers;
+    private Long todayNewPosts;
     private Long todayActiveUser;
     private Long pendingReportCount;
-    private List<Map<String, Object>> userTrend;
-    private List<Map<String, Object>> postTrend;
+    
+    private List<Integer> userGrowth;
+    private List<Integer> postGrowth;
+    private List<String> labels;
+    
+    private Integer userTrend;
+    private Integer postTrend;
+    
+    private List<Map<String, Object>> userTrendData;
+    private List<Map<String, Object>> postTrendData;
     private List<Map<String, Object>> latestReports;
 }

@@ -22,6 +22,14 @@ public class UserVO {
     private Integer points;
     private Integer postCount;
     private Integer collectCount;
+    /** 获赞总数 */
+    private Integer likeCount;
+    /** 是否隐藏喜欢列表: 0公开 1隐藏 */
+    private Integer hideLikes;
+    /** 是否隐藏收藏列表: 0公开 1隐藏 */
+    private Integer hideCollects;
+    /** 个人标签，逗号分隔 */
+    private String bioTags;
     private Integer continuousCheckin;
     private Long followerCount;
     private Long followingCount;

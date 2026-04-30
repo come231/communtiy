@@ -11,9 +11,12 @@ public class CommonConstant {
     public static final int USER_STATUS_DISABLED = 0;
 
     // 帖子状态
-    public static final int POST_STATUS_NORMAL = 1;
     public static final int POST_STATUS_DELETED = 0;
+    public static final int POST_STATUS_NORMAL = 1;
+    /** 待人工/二次确认（如 AI 标记存疑） */
     public static final int POST_STATUS_REVIEWING = 2;
+    /** 人工审核拒绝，仅作者可见 */
+    public static final int POST_STATUS_REJECTED = 3;
 
     // 评论状态
     public static final int COMMENT_STATUS_NORMAL = 1;

@@ -1,192 +1,315 @@
 <template>
-  <div class="max-w-5xl mx-auto px-4 py-6">
-    <!-- 加载状态 -->
-    <div v-if="loading" class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+  <div class="min-h-[calc(100vh-4.5rem)] bg-gradient-to-br from-[#f0f4ff] to-[#f8faff] py-6 md:py-8">
+    <div class="container mx-auto px-4 max-w-[1280px]">
+    <div v-if="loading" class="user-surface-card p-12 text-center">
       <el-skeleton :rows="10" animated />
     </div>
 
     <template v-else-if="post">
-      <div class="flex gap-6">
-        <!-- 主内容 -->
-        <div class="flex-1 min-w-0 space-y-4">
-          <!-- 帖子卡片 -->
-          <article class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <!-- 标签行 -->
+      <div class="flex flex-col lg:flex-row gap-6">
+        <div class="flex-1 min-w-0 space-y-6">
+          <article class="user-surface-card overflow-hidden">
+            <div v-if="post.coverImage" class="w-full border-b border-[#e5e7eb]">
+              <img :src="resolveFileUrl(post.coverImage)" alt="" class="w-full max-h-[min(420px,70vh)] object-cover bg-[#f3f4f6]" loading="lazy" referrerpolicy="no-referrer" />
+            </div>
             <div class="px-6 pt-5 flex items-center gap-2 flex-wrap">
-              <span v-if="post.isTop" class="px-2 py-0.5 text-xs bg-red-50 text-red-500 rounded font-medium">置顶</span>
-              <span v-if="post.isEssence" class="px-2 py-0.5 text-xs bg-orange-50 text-orange-500 rounded font-medium">精华</span>
-              <router-link :to="`/section/${post.sectionId}`" class="px-2 py-0.5 text-xs bg-blue-50 text-primary rounded hover:bg-blue-100 transition-colors">{{ post.sectionName || '默认板块' }}</router-link>
+              <span v-if="post.isTop" class="px-2 py-0.5 text-xs bg-rose-100 text-rose-700 rounded font-medium">置顶</span>
+              <span v-if="post.isEssence" class="px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded font-medium">精华</span>
+              <router-link :to="`/section/${post.sectionId}`" class="px-2 py-0.5 text-xs bg-[#eef2ff] text-[#6366f1] rounded hover:bg-[#e0e7ff] transition-colors">{{ post.sectionName || '默认板块' }}</router-link>
             </div>
 
-            <!-- 标题 & 作者 -->
             <div class="px-6 pb-4">
-              <h1 class="text-2xl font-bold text-gray-800 mb-4 leading-tight">{{ post.title }}</h1>
-              <div class="flex items-center justify-between">
+              <h1 class="text-2xl md:text-3xl font-bold text-[#1f2937] mb-4 leading-tight">{{ post.title }}</h1>
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div class="flex items-center gap-3 cursor-pointer" @click="$router.push(`/user/${post.authorId}`)">
-                  <img :src="post.authorAvatar || defaultAvatar" class="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                  <img :src="resolveFileUrl(post.authorAvatar) || defaultAvatar" referrerpolicy="no-referrer" class="w-10 h-10 rounded-full object-cover border-2 border-[#e5e7eb]" />
                   <div>
-                    <p class="text-sm font-medium text-gray-800">{{ post.isAnonymous ? '匿名用户' : post.authorName }}</p>
-                    <p class="text-xs text-gray-400">{{ formatTime(post.createTime) }}</p>
+                    <p class="text-sm font-medium text-[#1f2937]">{{ post.isAnonymous ? '匿名用户' : post.authorName }}</p>
+                    <p class="text-xs text-[#6b7280]">{{ formatTime(post.createTime) }}</p>
                   </div>
                 </div>
-                <button v-if="!isAuthor" @click="handleFollowAuthor" :class="['px-4 py-1.5 text-sm rounded-full transition-all', isFollowing ? 'bg-gray-100 text-gray-500' : 'bg-primary text-white hover:bg-blue-600']">
-                  {{ isFollowing ? '已关注' : '+ 关注' }}
-                </button>
+                <div class="flex items-center gap-3">
+                  <button v-if="!isAuthor" @click="handleFollowAuthor" :class="['px-4 py-1.5 text-sm rounded-full transition-all', isFollowing ? 'border border-[#e5e7eb] bg-[#f9fafb] text-[#6b7280]' : 'btn-gradient']">
+                    {{ isFollowing ? '已关注' : '+ 关注' }}
+                  </button>
+                  <button v-if="!isAuthor && userStore.isLoggedIn" type="button" @click="showReportDialog = true" class="px-4 py-1.5 text-sm rounded-full border border-[#e5e7eb] bg-white text-[#6b7280] hover:bg-[#f9fafb] transition-all inline-flex items-center gap-1">
+                    <i class="fa fa-flag mr-1"></i> 举报
+                  </button>
+                </div>
               </div>
             </div>
 
-            <!-- 分割线 -->
-            <div class="px-6"><div class="border-t border-gray-100"></div></div>
+            <div class="px-6"><div class="border-t border-[#e5e7eb]"></div></div>
 
-            <!-- 正文内容 (Markdown 渲染) -->
-            <div class="px-6 py-5 prose prose-sm max-w-none text-gray-700 leading-relaxed" v-html="renderContent(post.content)"></div>
+            <div class="px-6 py-5 prose prose-sm max-w-none text-[#374151] leading-relaxed post-md post-md-light" v-html="renderContent(post.content)"></div>
 
-            <!-- 底部操作栏 -->
-            <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <div v-if="detailVideo" class="px-6 pb-4">
+              <p class="text-xs text-[#9ca3af] mb-2">视频</p>
+              <video
+                v-if="isVideoFile(detailVideo)"
+                :src="resolveFileUrl(detailVideo)"
+                class="w-full max-h-[min(480px,70vh)] rounded-xl border border-[#e5e7eb] bg-[#0f172a]"
+                controls
+                playsinline
+                preload="metadata"
+              />
+              <a v-else :href="resolveFileUrl(detailVideo)" target="_blank" class="text-primary text-sm">打开视频</a>
+            </div>
+
+            <!-- 正文配图（多图固定区域） -->
+            <div v-if="detailImages.length" class="px-6 pb-6">
+              <p class="text-xs text-[#9ca3af] mb-3">配图</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <a v-for="(u, i) in detailImages" :key="i" :href="resolveFileUrl(u)" target="_blank" rel="noopener noreferrer" class="block rounded-xl overflow-hidden border border-[#e5e7eb] hover:border-[#818cf8] transition-colors">
+                  <img :src="resolveFileUrl(u)" alt="" class="w-full h-52 object-cover bg-[#f3f4f6]" loading="lazy" referrerpolicy="no-referrer" />
+                </a>
+              </div>
+            </div>
+
+            <!-- 举报对话框 -->
+            <el-dialog v-model="showReportDialog" title="举报帖子" width="450px">
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-[#374151] mb-2">举报类型</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <button
+                      v-for="type in reportTypes"
+                      :key="type.value"
+                      type="button"
+                      :class="[
+                        'px-4 py-2 text-sm rounded-lg border transition-all text-left',
+                        reportReason === type.value
+                          ? 'border-[#6366f1] bg-[#eef2ff] text-[#6366f1]'
+                          : 'border-[#e5e7eb] text-[#6b7280] hover:border-[#c7d2fe]',
+                      ]"
+                      @click="reportReason = type.value"
+                    >
+                      {{ type.label }}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-[#374151] mb-2">详细描述（选填）</label>
+                  <textarea
+                    v-model="reportDescription"
+                    placeholder="请描述您举报的具体内容..."
+                    rows="3"
+                    class="w-full px-4 py-2 rounded-xl text-sm resize-none border border-[#e5e7eb] bg-[#f9fafb] text-[#1f2937] outline-none focus:border-[#818cf8]"
+                  ></textarea>
+                </div>
+              </div>
+              <template #footer>
+                <el-button @click="showReportDialog = false">取消</el-button>
+                <el-button type="primary" @click="submitReport">提交举报</el-button>
+              </template>
+            </el-dialog>
+
+            <el-dialog v-model="sharePmDialogVisible" title="通过私信分享帖子" width="460px" @opened="loadShareRecipients">
+              <p class="text-sm text-[#6b7280] mb-3">选择「我关注的」或「我的粉丝」，向对方发送可点击打开的帖子卡片。</p>
+              <el-tabs v-model="sharePmTab" class="share-pm-tabs mb-3">
+                <el-tab-pane label="我关注的人" name="following"></el-tab-pane>
+                <el-tab-pane label="我的粉丝" name="followers"></el-tab-pane>
+              </el-tabs>
+              <div v-loading="sharePmLoading" class="min-h-[140px]">
+                <el-select
+                  v-model="sharePmSelectedId"
+                  filterable
+                  placeholder="选择要分享的用户"
+                  class="w-full"
+                  size="large"
+                  :class="'glass-input'"
+                >
+                  <el-option
+                    v-for="u in currentShareUserOptions"
+                    :key="u.userId"
+                    :label="formatShareUserLabel(u)"
+                    :value="u.userId"
+                  >
+                    <div class="flex items-center gap-2 py-1">
+                      <img :src="resolveFileUrl(u.avatar) || defaultAvatar" referrerpolicy="no-referrer" class="w-8 h-8 rounded-full object-cover" alt="" />
+                      <div class="flex flex-col">
+                        <span class="text-[#1f2937]">{{ formatShareUserLabel(u) }}</span>
+                        <span class="text-xs text-[#9ca3af]">ID {{ u.userId }}</span>
+                      </div>
+                    </div>
+                  </el-option>
+                </el-select>
+                <p v-if="!sharePmLoading && currentShareUserOptions.length === 0" class="text-sm text-amber-700 mt-3">
+                  {{ sharePmTab === 'following' ? '暂无关注用户，先去关注感兴趣的人吧。' : '暂无粉丝。' }}
+                </p>
+              </div>
+              <template #footer>
+                <el-button @click="sharePmDialogVisible = false">取消</el-button>
+                <el-button type="primary" :disabled="!sharePmSelectedId" @click="sendSharePm">发送</el-button>
+              </template>
+            </el-dialog>
+
+            <div class="px-6 py-4 border-t border-[#e5e7eb] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#fafbff]">
               <div class="flex items-center gap-6">
-                <!-- 点赞 -->
-                <button @click="handleLike" class="flex items-center gap-1.5 group transition-all">
-                  <svg :class="['w-5 h-5 transition-colors', post.isLiked ? 'text-red-500 fill-red-500' : 'text-gray-400 group-hover:text-red-400']" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                  <span :class="['text-sm', post.isLiked ? 'text-red-500 font-medium' : 'text-gray-500']">{{ post.likeCount || 0 }}</span>
+                <button type="button" @click="handleLike" class="flex items-center gap-1.5 group transition-all">
+                  <i :class="['fa fa-heart text-xl transition-colors', post.isLiked ? 'text-red-500' : 'text-[#9ca3af] group-hover:text-red-400']"></i>
+                  <span :class="['text-sm', post.isLiked ? 'text-red-500 font-medium' : 'text-[#6b7280]']">{{ post.likeCount || 0 }}</span>
                 </button>
-                <!-- 收藏 -->
-                <button @click="handleCollect" class="flex items-center gap-1.5 group transition-all">
-                  <svg :class="['w-5 h-5 transition-colors', post.isCollected ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400 group-hover:text-yellow-400']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
-                  <span :class="['text-sm', post.isCollected ? 'text-yellow-600 font-medium' : 'text-gray-500']">{{ post.collectCount || 0 }}</span>
+                <button type="button" @click="handleCollect" class="flex items-center gap-1.5 group transition-all">
+                  <i :class="['fa fa-star text-xl transition-colors', post.isCollected ? 'text-yellow-500' : 'text-[#9ca3af] group-hover:text-yellow-500']"></i>
+                  <span :class="['text-sm', post.isCollected ? 'text-yellow-600 font-medium' : 'text-[#6b7280]']">{{ post.collectCount || 0 }}</span>
                 </button>
-                <!-- 浏览量 -->
-                <span class="flex items-center gap-1.5 text-gray-400 text-sm">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>{{ post.viewCount }}
+                <span class="flex items-center gap-1.5 text-[#6b7280] text-sm">
+                  <i class="fa fa-eye text-xl mr-1"></i>{{ post.viewCount }}
                 </span>
               </div>
 
-              <!-- 分享 & 删除 -->
               <div class="flex items-center gap-3">
+                <button type="button" title="复制链接" @click="handleShare" class="text-[#9ca3af] hover:text-[#6366f1] transition-colors">
+                  <i class="fa fa-share-alt text-xl"></i>
+                </button>
+                <button v-if="userStore.isLoggedIn" type="button" title="私信分享" @click="openSharePmDialog" class="text-[#9ca3af] hover:text-[#6366f1] transition-colors">
+                  <i class="fa fa-paper-plane text-xl"></i>
+                </button>
+                <button v-if="!isAuthor && userStore.isLoggedIn" type="button" @click="goMessage" class="text-[#9ca3af] hover:text-[#6366f1] transition-colors">
+                  <i class="fa fa-envelope text-xl"></i>
+                </button>
+                <button v-if="isAuthor" type="button" @click="router.push(`/post/${postId}/edit`)" class="px-3 py-1.5 text-sm rounded-xl border border-[#e5e7eb] bg-white text-[#1f2937] hover:bg-[#f9fafb]">编辑</button>
                 <el-button v-if="isAuthor" type="danger" size="small" plain @click="handleDelete">删除</el-button>
               </div>
             </div>
           </article>
 
-          <!-- 评论区域 -->
-          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          <div class="user-surface-card p-6">
+            <h3 class="text-xl font-bold text-[#1f2937] mb-6 flex items-center gap-2">
+              <i class="fa fa-comments text-[#6366f1] mr-2"></i>
               评论 ({{ commentTotal }})
             </h3>
 
-            <!-- 评论输入框 -->
-            <div v-if="userStore.isLoggedIn" class="mb-6">
+            <div v-if="userStore.isLoggedIn" class="mb-8">
               <div class="flex gap-3">
-                <img :src="userStore.avatar || defaultAvatar" class="w-9 h-9 rounded-full flex-shrink-0" />
+                <img :src="resolveFileUrl(userStore.avatar) || defaultAvatar" referrerpolicy="no-referrer" class="w-9 h-9 rounded-full flex-shrink-0 border border-[#e5e7eb]" />
                 <div class="flex-1 relative">
+                  <input ref="commentImageInputRef" type="file" accept="image/*" multiple class="hidden" @change="onCommentPics" />
                   <textarea
                     v-model="commentText"
-                    placeholder="写下你的评论..."
-                    class="w-full px-4 py-2.5 border border-gray-200 rounded-lg resize-none focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none text-sm transition-all"
+                    placeholder="文字与配图可只填一种；多图可多次选择"
+                    class="w-full px-4 py-3 rounded-xl resize-none border border-[#e5e7eb] bg-[#f9fafb] focus:border-[#818cf8] focus:ring-1 focus:ring-[#818cf8]/30 outline-none text-sm text-[#1f2937] placeholder:text-[#9ca3af]"
                     rows="2"
                   ></textarea>
-                  <div class="flex justify-end mt-2">
+                  <div v-if="commentPics.length" class="flex flex-wrap gap-2 mt-2">
+                    <div v-for="(p, i) in commentPics" :key="i" class="relative w-16 h-16 rounded-lg border border-[#e5e7eb] overflow-hidden group">
+                      <img :src="p.preview" class="w-full h-full object-cover" alt="" />
+                      <button type="button" class="absolute inset-0 bg-black/50 text-white text-xs opacity-0 group-hover:opacity-100" @click="commentPics.splice(i,1)">移除</button>
+                    </div>
+                  </div>
+                  <div class="flex justify-between items-center mt-3">
+                    <button type="button" class="text-xs text-[#6366f1] hover:underline" @click="commentImageInputRef?.click()">+ 选择配图</button>
                     <el-button type="primary" size="small" @click="submitComment" :loading="submitting">发表评论</el-button>
                   </div>
                 </div>
               </div>
             </div>
-            <div v-else class="mb-6 p-4 bg-blue-50/50 rounded-lg text-center text-sm text-gray-500">
-              <router-link to="/login" class="text-primary hover:underline">登录后参与评论</router-link>
+            <div v-else class="mb-8 p-4 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] text-center text-sm text-[#6b7280]">
+              <router-link to="/login" class="text-[#6366f1] hover:underline">登录后参与评论</router-link>
             </div>
 
-            <!-- 评论列表 -->
-            <div v-loading="commentLoading" class="space-y-4">
-              <div v-for="comment in comments" :key="comment.id" class="flex gap-3 pb-4 border-b border-gray-50 last:border-0">
-                <img :src="comment.userAvatar || defaultAvatar" class="w-9 h-9 rounded-full flex-shrink-0 cursor-pointer" @click="$router.push(`/user/${comment.userId}`)" />
+            <div v-loading="commentLoading" class="space-y-6">
+              <div v-for="comment in comments" :key="comment.id" class="flex gap-3 pb-6 border-b border-[#e5e7eb] last:border-0">
+                <img
+                  :src="avatarDisplayUrl(comment.userAvatar, defaultAvatar)"
+                  referrerpolicy="no-referrer"
+                  class="w-9 h-9 rounded-full flex-shrink-0 cursor-pointer ring-1 ring-[#e5e7eb] object-cover"
+                  @click="$router.push(`/user/${comment.userId}`)"
+                />
                 <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
-                    <span class="text-sm font-medium text-gray-800 cursor-pointer hover:text-primary" @click="$router.push(`/user/${comment.userId}`)">{{ comment.userName }}</span>
-                    <span class="text-xs text-gray-300">#{{ comment.floorNumber }}</span>
-                    <span class="text-xs text-gray-400 ml-auto">{{ formatTime(comment.createTime) }}</span>
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="text-sm font-medium text-[#1f2937] cursor-pointer hover:text-[#6366f1]" @click="$router.push(`/user/${comment.userId}`)">{{ comment.userName }}</span>
+                    <span class="text-xs text-[#9ca3af]">#{{ comment.floorNumber }}</span>
+                    <span class="text-xs text-[#9ca3af] ml-auto">{{ formatTime(comment.createTime) }}</span>
                   </div>
-                  <!-- 回复提示 -->
-                  <p v-if="comment.replyToUserName" class="text-xs text-gray-400 mb-1">
-                    回复 <span class="text-primary">@{{ comment.replyToUserName }}</span>
+                  <p v-if="comment.replyToUserName" class="text-xs text-[#6b7280] mb-2">
+                    回复 <span class="text-[#6366f1]">@{{ comment.replyToUserName }}</span>
                   </p>
-                  <p class="text-sm text-gray-700 leading-relaxed mb-2">{{ comment.content }}</p>
-                  <div class="flex items-center gap-4 text-xs text-gray-400">
-                    <button @click="showReplyInput(comment)" class="hover:text-primary transition-colors">回复</button>
-                    <!-- 评论点赞爱心 -->
-                    <button @click="handleLikeComment(comment)" class="flex items-center gap-1 hover:text-red-400 transition-colors">
-                      <svg :class="['w-4 h-4 transition-colors', comment.isLiked ? 'text-red-500 fill-red-500' : '']" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                      </svg>
+                  <p v-if="comment.content && comment.content.trim()" class="text-sm text-[#374151] leading-relaxed mb-3">{{ comment.content }}</p>
+                  <div v-if="comment.imageUrls && comment.imageUrls.length" class="flex flex-wrap gap-2 mb-3">
+                    <a v-for="(iu, ii) in comment.imageUrls" :key="ii" :href="resolveFileUrl(iu)" target="_blank" class="block w-24 h-24 rounded-lg overflow-hidden border border-[#e5e7eb]">
+                      <img :src="resolveFileUrl(iu)" class="w-full h-full object-cover" alt="" referrerpolicy="no-referrer" />
+                    </a>
+                  </div>
+                  <div class="flex items-center gap-4 text-xs text-[#6b7280]">
+                    <button type="button" @click="showReplyInput(comment)" class="hover:text-[#6366f1] transition-colors">回复</button>
+                    <button type="button" @click="handleLikeComment(comment)" class="flex items-center gap-1 hover:text-red-500 transition-colors">
+                      <i :class="['fa fa-heart transition-colors', comment.isLiked ? 'text-red-500' : '']"></i>
                       <span :class="comment.isLiked ? 'text-red-500' : ''">{{ comment.likeCount }}</span>
                     </button>
-                    <button v-if="canDelete(comment.userId)" class="hover:text-red-400 transition-colors" @click="deleteComment(comment.id)">删除</button>
+                    <button v-if="canDelete(comment.userId)" type="button" class="hover:text-red-500 transition-colors" @click="deleteComment(comment.id)">删除</button>
                   </div>
-                  <!-- 回复输入框 -->
-                  <div v-if="replyToId === comment.id" class="mt-3 flex gap-2">
+                  <div v-if="replyToId === comment.id" class="mt-4 flex gap-2 flex-wrap">
                     <input v-model="replyText" :placeholder="`回复 ${comment.userName}...`"
-                      class="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-primary outline-none" />
+                      class="flex-1 min-w-[12rem] px-3 py-2 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] text-sm outline-none focus:border-[#818cf8]" />
                     <el-button size="small" type="primary" @click="submitReply(comment)">回复</el-button>
                     <el-button size="small" @click="replyToId = 0">取消</el-button>
                   </div>
 
-                  <!-- 楼中楼回复 -->
-                  <div v-if="comment.replies && comment.replies.length > 0" class="mt-3 bg-gray-50/80 rounded-lg p-3 space-y-3">
+                  <div v-if="comment.replies && comment.replies.length > 0" class="mt-4 rounded-xl border border-[#e5e7eb] bg-[#fafbff] p-4 space-y-4">
                     <div v-for="reply in comment.replies" :key="reply.id" class="flex gap-2">
-                      <img :src="reply.userAvatar || defaultAvatar" class="w-7 h-7 rounded-full flex-shrink-0 cursor-pointer" @click="$router.push(`/user/${reply.userId}`)" />
+                      <img
+                        :src="avatarDisplayUrl(reply.userAvatar, defaultAvatar)"
+                        referrerpolicy="no-referrer"
+                        class="w-7 h-7 rounded-full flex-shrink-0 cursor-pointer ring-1 ring-[#e5e7eb] object-cover"
+                        @click="$router.push(`/user/${reply.userId}`)"
+                      />
                       <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-0.5">
-                          <span class="text-xs font-medium text-gray-700 cursor-pointer hover:text-primary" @click="$router.push(`/user/${reply.userId}`)">{{ reply.userName }}</span>
-                          <span v-if="reply.replyToUserName" class="text-xs text-gray-400">回复 <span class="text-primary">@{{ reply.replyToUserName }}</span></span>
-                          <span class="text-xs text-gray-400 ml-auto">{{ formatTime(reply.createTime) }}</span>
+                        <div class="flex items-center gap-2 mb-1 flex-wrap">
+                          <span class="text-xs font-medium text-[#1f2937] cursor-pointer hover:text-[#6366f1]" @click="$router.push(`/user/${reply.userId}`)">{{ reply.userName }}</span>
+                          <span v-if="reply.replyToUserName" class="text-xs text-[#6b7280]">回复 <span class="text-[#6366f1]">@{{ reply.replyToUserName }}</span></span>
+                          <span class="text-xs text-[#9ca3af] ml-auto">{{ formatTime(reply.createTime) }}</span>
                         </div>
-                        <p class="text-xs text-gray-600 leading-relaxed mb-1">{{ reply.content }}</p>
-                        <div class="flex items-center gap-3 text-xs text-gray-400">
-                          <button @click="showReplyInput(comment, reply)" class="hover:text-primary transition-colors">回复</button>
-                          <!-- 子回复点赞爱心 -->
-                          <button @click="handleLikeComment(reply)" class="flex items-center gap-1 hover:text-red-400 transition-colors">
-                            <svg :class="['w-3.5 h-3.5 transition-colors', reply.isLiked ? 'text-red-500 fill-red-500' : '']" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                            </svg>
+                        <p v-if="reply.content && reply.content.trim()" class="text-xs text-[#4b5563] leading-relaxed mb-2">{{ reply.content }}</p>
+                        <div v-if="reply.imageUrls && reply.imageUrls.length" class="flex flex-wrap gap-2 mb-2">
+                          <a v-for="(iu, ii) in reply.imageUrls" :key="ii" :href="resolveFileUrl(iu)" target="_blank" class="block w-20 h-20 rounded overflow-hidden border border-[#e5e7eb]">
+                            <img :src="resolveFileUrl(iu)" class="w-full h-full object-cover" alt="" referrerpolicy="no-referrer" />
+                          </a>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs text-[#6b7280]">
+                          <button type="button" @click="showReplyInput(comment, reply)" class="hover:text-[#6366f1] transition-colors">回复</button>
+                          <button type="button" @click="handleLikeComment(reply)" class="flex items-center gap-1 hover:text-red-500 transition-colors">
+                            <i :class="['fa fa-heart transition-colors', reply.isLiked ? 'text-red-500' : '']"></i>
                             <span :class="reply.isLiked ? 'text-red-500' : ''">{{ reply.likeCount }}</span>
                           </button>
-                          <button v-if="canDelete(reply.userId)" class="hover:text-red-400 transition-colors" @click="deleteComment(reply.id)">删除</button>
+                          <button v-if="canDelete(reply.userId)" type="button" class="hover:text-red-500 transition-colors" @click="deleteComment(reply.id)">删除</button>
                         </div>
-                        <!-- 子回复输入框 -->
-                        <div v-if="replyToId === reply.id" class="mt-2 flex gap-2">
+                        <div v-if="replyToId === reply.id" class="mt-3 flex gap-2 flex-wrap">
                           <input v-model="replyText" :placeholder="`回复 ${reply.userName}...`"
-                            class="flex-1 px-2 py-1 text-xs border border-gray-200 rounded focus:border-primary outline-none" />
+                            class="flex-1 min-w-[10rem] px-3 py-1.5 rounded-xl border border-[#e5e7eb] bg-white text-xs outline-none focus:border-[#818cf8]" />
                           <el-button size="small" type="primary" @click="submitReply(comment, reply)">回复</el-button>
                           <el-button size="small" @click="replyToId = 0">取消</el-button>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <!-- 查看更多回复 -->
-                  <button v-if="comment.replies && comment.replies.length > 0" class="text-xs text-primary hover:underline mt-2">展开 {{ comment.replies.length }} 条回复</button>
+                  <button v-if="comment.replies && comment.replies.length > 0" type="button" class="text-xs text-[#6366f1] hover:underline mt-3">展开 {{ comment.replies.length }} 条回复</button>
                 </div>
               </div>
 
-              <!-- 分页 -->
-              <div v-if="commentTotal > 10" class="pt-4 flex justify-center">
+              <div v-if="commentTotal > 10" class="pt-6 flex justify-center">
                 <el-pagination small layout="prev, pager, next" :total="commentTotal" :page-size="10" :current-page="commentPage" @current-change="loadComments" />
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 右侧边栏 -->
-        <aside class="w-72 hidden xl:block flex-shrink-0 space-y-4">
-          <!-- 作者卡片 -->
-          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <aside class="w-full lg:w-72 flex-shrink-0 space-y-6">
+          <div class="user-surface-card p-5">
             <div class="flex items-center gap-3">
-              <img :src="post?.authorAvatar || defaultAvatar" class="w-14 h-14 rounded-full object-cover border border-gray-200" />
+              <img
+                :src="avatarDisplayUrl(post?.authorAvatar, defaultAvatar)"
+                referrerpolicy="no-referrer"
+                class="w-14 h-14 rounded-full object-cover border-2 border-[#e5e7eb]"
+              />
               <div>
-                <p class="font-medium text-gray-800">{{ post?.isAnonymous ? '匿名用户' : post?.authorName }}</p>
-                <p class="text-xs text-gray-400 mt-0.5">发布于 {{ formatTime(post?.createTime || '') }}</p>
+                <p class="font-medium text-[#1f2937]">{{ post?.isAnonymous ? '匿名用户' : post?.authorName }}</p>
+                <p class="text-xs text-[#6b7280] mt-0.5">发布于 {{ formatTime(post?.createTime || '') }}</p>
               </div>
             </div>
             <div v-if="!post?.isAnonymous && !isAuthor" class="mt-4">
-              <button @click="handleFollowAuthor" :class="['w-full py-2 rounded-lg text-sm font-medium transition-all', isFollowing ? 'bg-gray-100 text-gray-500' : 'bg-primary text-white hover:bg-blue-600']">
+              <button type="button" @click="handleFollowAuthor" :class="['w-full py-2.5 rounded-xl text-sm font-medium transition-all', isFollowing ? 'border border-[#e5e7eb] bg-[#f9fafb] text-[#6b7280]' : 'btn-gradient']">
                 {{ isFollowing ? '已关注' : '关注作者' }}
               </button>
             </div>
@@ -194,16 +317,19 @@
         </aside>
       </div>
     </template>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '../../../store/user'
-import { postApi, commentApi, interactApi, userApi } from '../../../api'
+import { postApi, commentApi, interactApi, userApi, messageApi, fileApi } from '../../../api'
 import type { PostDetail, Comment } from '../../../types'
+import { renderMarkdownToHtml, parsePostImageList } from '../../../utils/renderMarkdown'
+import { resolveFileUrl, avatarDisplayUrl } from '../../../utils/resolveFileUrl'
 
 const route = useRoute()
 const router = useRouter()
@@ -219,14 +345,82 @@ const commentTotal = ref(0)
 
 const isFollowing = ref(false)
 const commentText = ref('')
+const commentPics = ref<{ fileId: string; preview: string }[]>([])
+const commentImageInputRef = ref<HTMLInputElement | null>(null)
 const submitting = ref(false)
 const replyToId = ref(0)
 const replyText = ref('')
 
-const postId = computed(() => Number(route.params.id))
+// 举报相关
+const showReportDialog = ref(false)
+const reportReason = ref('')
+const reportDescription = ref('')
+const reportTypes = [
+  { value: 'spam', label: '垃圾广告' },
+  { value: 'abuse', label: '人身攻击' },
+  { value: 'copyright', label: '版权问题' },
+  { value: 'illegal', label: '违法内容' },
+  { value: 'other', label: '其他' },
+]
+
+const sharePmDialogVisible = ref(false)
+const sharePmTab = ref<'following' | 'followers'>('following')
+const sharePmFollowing = ref<{ userId: number; nickname?: string; username?: string; avatar?: string }[]>([])
+const sharePmFollowers = ref<{ userId: number; nickname?: string; username?: string; avatar?: string }[]>([])
+const sharePmSelectedId = ref<number | null>(null)
+const sharePmLoading = ref(false)
+
+const currentShareUserOptions = computed(() =>
+  sharePmTab.value === 'following' ? sharePmFollowing.value : sharePmFollowers.value
+)
+
+watch(sharePmTab, () => {
+  sharePmSelectedId.value = null
+})
+
+const postId = computed(() => {
+  const raw = route.params.id
+  const s = raw == null ? '' : String(raw)
+  if (s === '' || s === 'NaN' || !/^\d+$/.test(s)) {
+    return 0
+  }
+  const n = Number(s)
+  return Number.isFinite(n) && n > 0 ? n : 0
+})
+const detailImages = computed(() => {
+  const p = post.value as any
+  if (!p) return []
+  if (p.media && Array.isArray(p.media) && p.media.length) {
+    return p.media
+      .filter((m: any) => m.mediaType === 1)
+      .map((m: any) => m.downloadPath || (m.fileId != null ? `/api/file/download/${m.fileId}` : ''))
+      .filter(Boolean)
+  }
+  return parsePostImageList(p.images)
+})
+const detailVideo = computed(() => {
+  const p = post.value as any
+  if (!p) return ''
+  if (p.media && Array.isArray(p.media) && p.media.length) {
+    const v = p.media.find((m: any) => m.mediaType === 2)
+    if (v) return v.downloadPath || (v.fileId != null ? `/api/file/download/${v.fileId}` : '')
+  }
+  return p.video || ''
+})
+
+function isVideoFile(path: string) {
+  if (!path) return false
+  const l = path.toLowerCase()
+  return l.includes('/file/download/') || l.endsWith('.mp4') || l.endsWith('.webm') || l.endsWith('.mov') || l.includes('video')
+}
 const isAuthor = computed(() => String(post.value?.authorId) === userStore.userId)
 
 onMounted(() => {
+  if (postId.value <= 0) {
+    ElMessage.error('无效的帖子链接')
+    router.push('/')
+    return
+  }
   loadPost()
   loadComments()
 })
@@ -239,14 +433,15 @@ async function loadPost() {
     post.value = {
       ...res,
       id: res.postId,
-      coverImage: res.images || '',
     }
     // 检查是否关注了作者
     if (userStore.isLoggedIn && !post.value!.isAnonymous) {
       try { 
         const followed: any = await userApi.isFollowing(post.value!.authorId)
         isFollowing.value = followed
-      } catch {}
+      } catch {
+        /* 关注状态非关键，忽略 */
+      }
     }
     // 检查当前用户是否点赞/收藏
     if (userStore.isLoggedIn) {
@@ -259,7 +454,9 @@ async function loadPost() {
           post.value.isLiked = liked
           post.value.isCollected = collected
         }
-      } catch {}
+      } catch {
+        /* 点赞/收藏状态非关键，忽略 */
+      }
     }
   } catch { /* handled by interceptor */ }
   finally { loading.value = false }
@@ -286,6 +483,7 @@ async function loadComments(page = 1) {
       likeCount: c.likeCount || 0,
       isLiked: c.isLiked || false,
       createTime: c.createTime,
+      imageUrls: c.imageUrls || [],
       replies: (c.replies || []).map((r: any) => ({
         id: r.commentId,
         content: r.content,
@@ -300,19 +498,74 @@ async function loadComments(page = 1) {
         likeCount: r.likeCount || 0,
         isLiked: r.isLiked || false,
         createTime: r.createTime,
+        imageUrls: r.imageUrls || [],
       }))
     }))
     commentTotal.value = res?.total || 0
-  } catch {}
-  finally { commentLoading.value = false }
+  } catch {
+    /* 由全局拦截器处理或静默 */
+  } finally {
+    commentLoading.value = false
+  }
 }
 
 function renderContent(content: string): string {
-  return content
-    .replace(/### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
-    .replace(/\n/gim, '<br/>')
+  return renderMarkdownToHtml(content || '')
+}
+
+function formatShareUserLabel(u: { nickname?: string; username?: string; userId?: number }) {
+  return (u.nickname || u.username || `用户${u.userId || ''}`).trim()
+}
+
+async function loadShareRecipients() {
+  if (!userStore.isLoggedIn) return
+  const uid = Number(userStore.userId)
+  if (!uid) return
+  sharePmLoading.value = true
+  try {
+    const [f1, f2] = await Promise.all([
+      userApi.following(uid).catch(() => []),
+      userApi.followers(uid).catch(() => []),
+    ])
+    const filterSelf = (arr: any[]) =>
+      (arr || []).filter((u: any) => u && Number(u.userId) !== uid)
+    sharePmFollowing.value = filterSelf(Array.isArray(f1) ? f1 : [])
+    sharePmFollowers.value = filterSelf(Array.isArray(f2) ? f2 : [])
+  } finally {
+    sharePmLoading.value = false
+  }
+}
+
+function openSharePmDialog() {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  sharePmTab.value = 'following'
+  sharePmSelectedId.value = null
+  sharePmDialogVisible.value = true
+}
+
+async function sendSharePm() {
+  const uid = sharePmSelectedId.value
+  if (!uid || uid <= 0) {
+    ElMessage.warning('请选择要分享的用户')
+    return
+  }
+  if (!post.value) return
+  try {
+    await messageApi.send({
+      toUserId: uid,
+      sharePostId: postId.value,
+      sharePostTitle: post.value.title,
+    })
+    ElMessage.success('已发送分享卡片')
+    sharePmDialogVisible.value = false
+    sharePmSelectedId.value = null
+    router.push({ path: '/message', query: { toUserId: String(uid), toNickName: '' } })
+  } catch {
+    ElMessage.error('发送失败')
+  }
 }
 
 function formatTime(time: string): string {
@@ -376,30 +629,77 @@ async function handleFollowAuthor() {
   const authorId = post.value!.authorId
   try {
     if (isFollowing.value) {
+      await ElMessageBox.confirm('确定要取消关注该用户吗？', '取消关注', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
       await userApi.unfollow(authorId)
-      isFollowing.value = false; ElMessage.success('已取消关注')
+      isFollowing.value = false
+      ElMessage.success('已取消关注')
     } else {
       await userApi.follow(authorId)
-      isFollowing.value = true; ElMessage.success('关注成功')
+      isFollowing.value = true
+      ElMessage.success('关注成功')
     }
   } catch (e: any) {
-    console.error('操作失败', e)
+    if (e !== 'cancel') {
+      console.error('操作失败', e)
+    }
+  }
+}
+
+async function onCommentPics(e: Event) {
+  const input = e.target as HTMLInputElement
+  const files = input.files
+  if (!files?.length) return
+  input.value = ''
+  for (const file of Array.from(files)) {
+    if (!file.type.startsWith('image/')) continue
+    if (file.size > 10 * 1024 * 1024) {
+      ElMessage.warning('单张评论图不超过 10MB')
+      continue
+    }
+    try {
+      const res: any = await fileApi.uploadImage(file, undefined, 'community/images/comment')
+      const id = res?.id
+      if (id == null) {
+        ElMessage.warning('上传未返回文件 ID，请重试')
+        continue
+      }
+      const sid = String(id).trim()
+      const url = `/api/file/download/${sid}`
+      commentPics.value.push({ fileId: sid, preview: resolveFileUrl(url) || url })
+    } catch (e: any) {
+      ElMessage.error(e?.message || '图片上传失败')
+    }
   }
 }
 
 async function submitComment() {
   const content = commentText.value.trim()
-  if (!content) return
+  if (!content && !commentPics.value.length) {
+    ElMessage.warning('请输入评论或添加配图')
+    return
+  }
   submitting.value = true
   try {
-    await commentApi.create({ postId: postId.value, content })
+    const ids = commentPics.value.map((p) => String(p.fileId).trim())
+    await commentApi.create({
+      postId: postId.value,
+      content: content || undefined,
+      imageFileIds: ids.length > 0 ? ids : undefined,
+    })
     commentText.value = ''
+    commentPics.value = []
     ElMessage.success('评论成功')
     loadComments()
   } catch (e: any) {
+    // 业务/网络错误已由 request 拦截器弹窗；仅补充控制台便于排查
     console.error('评论失败', e)
+  } finally {
+    submitting.value = false
   }
-  finally { submitting.value = false }
 }
 
 function showReplyInput(comment: Comment, reply?: Comment) {
@@ -481,4 +781,95 @@ async function handleDelete() {
     }
   }
 }
+
+async function submitReport() {
+  if (!reportReason.value) {
+    ElMessage.warning('请选择举报类型')
+    return
+  }
+  try {
+    await postApi.report(postId.value, reportReason.value, reportDescription.value)
+    ElMessage.success('举报已提交，感谢您的反馈')
+    showReportDialog.value = false
+    reportReason.value = ''
+    reportDescription.value = ''
+  } catch (e: any) {
+    console.error('举报失败', e)
+    ElMessage.error('举报失败，请稍后重试')
+  }
+}
+
+function handleShare() {
+  const url = window.location.href
+  navigator.clipboard.writeText(url).then(() => {
+    ElMessage.success('链接已复制到剪贴板')
+  }).catch(() => {
+    ElMessage.warning('复制失败，请手动复制')
+  })
+}
+
+function goMessage() {
+  if (post.value && !post.value.isAnonymous) {
+    router.push({
+      path: '/chat',
+      query: { userId: String(post.value.authorId), nickName: post.value.authorName || '' },
+    })
+  }
+}
 </script>
+
+<style scoped>
+/* 自定义样式 */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.post-md-light.prose h2 {
+  color: #1f2937 !important;
+  font-size: 1.5rem !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.post-md-light.prose h3 {
+  color: #1f2937 !important;
+  font-size: 1.25rem !important;
+  margin-top: 1.25rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.post-md-light.prose p {
+  color: #374151 !important;
+  margin-bottom: 1rem !important;
+}
+
+.post-md-light.prose strong {
+  color: #111827 !important;
+  font-weight: 600 !important;
+}
+
+.post-md-light.prose a {
+  color: #6366f1 !important;
+}
+
+.post-md :deep(.md-code-block) {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.post-md :deep(.md-img) {
+  max-height: 24rem;
+}
+
+.share-pm-tabs :deep(.el-tabs__item.is-active) {
+  color: var(--el-color-primary);
+}
+
+.glass-input :deep(.el-select__wrapper),
+.glass-input :deep(.el-input__wrapper) {
+  background-color: #f9fafb !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: none !important;
+}
+</style>

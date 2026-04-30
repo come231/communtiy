@@ -17,8 +17,6 @@ public class Notice {
 
     private Long userId;
 
-    // 🔥 表没有，删掉
-    // private String title;
 
     private String content;
 
@@ -27,11 +25,6 @@ public class Notice {
     @TableField("is_read")
     private Boolean isRead;
 
-    // 🔥 表没有这两个，删掉
-    // private Long relatedId;
-    // private Integer relatedType;
-
-    // 🔥 表真实存在的字段，加上！
     private Long fromUid;
     private Long targetId;
 

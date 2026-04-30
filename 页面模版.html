@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星云社区 - 连接每一个有趣的灵魂</title>
+    <!-- 引入外部资源 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
+    <!-- Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                        accent: '#ec4899',
+                        dark: '#0f172a',
+                        light: '#f8fafc',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                },
+            }
+        }
+    </script>
+
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient {
+                @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent;
+            }
+            .card-hover {
+                @apply transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-primary/20;
+            }
+            .btn-gradient {
+                @apply bg-gradient-to-r from-primary to-secondary text-white font-medium py-3 px-6 rounded-full transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 hover:scale-105 active:scale-95;
+            }
+            .glass {
+                @apply bg-white/10 backdrop-blur-lg border border-white/20;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-dark text-light overflow-x-hidden">
+<!-- 3D粒子背景 -->
+<div id="particles-js" class="fixed top-0 left-0 w-full h-full z-[-1]"></div>
+
+<!-- 导航栏 - 毛玻璃效果 -->
+<header class="fixed w-full top-0 z-50 transition-all duration-300" id="navbar">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between glass rounded-b-2xl mx-4 lg:mx-auto">
+        <!-- 品牌Logo -->
+        <a href="#" class="flex items-center gap-2">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-accent flex items-center justify-center animate-pulse">
+                <i class="fa fa-star-o text-xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gradient">星云社区</h1>
+        </a>
+
+        <!-- 桌面端导航 -->
+        <nav class="hidden md:flex items-center gap-8">
+            <a href="#" class="font-medium hover:text-gradient transition-colors">首页</a>
+            <a href="#" class="font-medium hover:text-gradient transition-colors">发现</a>
+            <a href="#" class="font-medium hover:text-gradient transition-colors">话题</a>
+            <a href="#" class="font-medium hover:text-gradient transition-colors">动态</a>
+            <a href="#" class="font-medium hover:text-gradient transition-colors">关于我们</a>
+        </nav>
+
+        <!-- 操作按钮 -->
+        <div class="flex items-center gap-3">
+            <button class="px-4 py-2 rounded-full border border-primary/50 hover:bg-primary/10 transition-all">登录</button>
+            <button class="btn-gradient hidden sm:block">注册</button>
+            <button class="md:hidden text-2xl" id="menuBtn">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- 移动端菜单 -->
+<div id="mobileMenu" class="fixed top-20 right-0 w-3/4 glass rounded-l-2xl p-6 z-40 transform translate-x-full transition-transform duration-300">
+    <nav class="flex flex-col gap-4">
+        <a href="#" class="font-medium py-2 hover:text-gradient transition-colors">首页</a>
+        <a href="#" class="font-medium py-2 hover:text-gradient transition-colors">发现</a>
+        <a href="#" class="font-medium py-2 hover:text-gradient transition-colors">话题</a>
+        <a href="#" class="font-medium py-2 hover:text-gradient transition-colors">动态</a>
+        <a href="#" class="font-medium py-2 hover:text-gradient transition-colors">关于我们</a>
+    </nav>
+</div>
+
+<!-- 英雄区 - 核心视觉区 -->
+<section class="min-h-screen flex items-center justify-center pt-20 px-4">
+    <div class="container mx-auto text-center">
+        <div class="max-w-4xl mx-auto">
+            <!-- 主标题 -->
+            <h1 class="text-[clamp(2.5rem,8vw,5rem)] font-bold leading-tight mb-6">
+                连接<span class="text-gradient">未来</span>
+                <br>
+                遇见有趣的<span class="text-gradient">灵魂</span>
+            </h1>
+
+            <!-- 副标题 -->
+            <p class="text-lg md:text-xl text-light/80 mb-10 max-w-2xl mx-auto">
+                星云社区 - 打破时空界限，用科技连接热爱，这里有温度、有思想、有你想要的一切交流
+            </p>
+
+            <!-- 行动按钮 -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+                <button class="btn-gradient text-lg px-8 py-4">
+                    <i class="fa fa-paper-plane mr-2"></i>立即加入
+                </button>
+                <button class="glass text-lg px-8 py-4 rounded-full transition-all hover:bg-white/20">
+                    <i class="fa fa-play-circle mr-2"></i>了解更多
+                </button>
+            </div>
+
+            <!-- 3D交互元素 -->
+            <div class="relative w-full max-w-2xl mx-auto h-64 md:h-80">
+                <div id="3d-element" class="w-full h-full"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 核心功能区 -->
+<section class="py-20 px-4">
+    <div class="container mx-auto">
+        <!-- 标题 -->
+        <div class="text-center mb-16">
+            <h2 class="text-4xl md:text-5xl font-bold mb-4">核心<span class="text-gradient">功能</span></h2>
+            <p class="text-light/70 max-w-2xl mx-auto">为你打造极致的社区交流体验，每一处细节都充满温度与科技</p>
+        </div>
+
+        <!-- 功能卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- 卡片1 -->
+            <div class="glass rounded-2xl p-8 card-hover">
+                <div class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-6">
+                    <i class="fa fa-comments text-2xl text-primary"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-3">即时交流</h3>
+                <p class="text-light/70">极速响应的聊天系统，支持文字、图片、表情，让交流从未如此顺畅</p>
+            </div>
+
+            <!-- 卡片2 -->
+            <div class="glass rounded-2xl p-8 card-hover">
+                <div class="w-16 h-16 rounded-full bg-secondary/20 flex items-center justify-center mb-6">
+                    <i class="fa fa-lightbulb-o text-2xl text-secondary"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-3">话题探索</h3>
+                <p class="text-light/70">海量热门话题，精准推荐，找到与你志同道合的伙伴，畅聊所想</p>
+            </div>
+
+            <!-- 卡片3 -->
+            <div class="glass rounded-2xl p-8 card-hover">
+                <div class="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mb-6">
+                    <i class="fa fa-user-circle-o text-2xl text-accent"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-3">个人空间</h3>
+                <p class="text-light/70">专属个性化主页，记录你的每一份精彩，展示独一无二的你</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 热门话题区 -->
+<section class="py-20 px-4 bg-gradient-to-b from-dark to-dark/80">
+    <div class="container mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-12">
+            <h2 class="text-4xl font-bold mb-4 md:mb-0">热门<span class="text-gradient">话题</span></h2>
+            <button class="glass px-6 py-2 rounded-full hover:bg-white/20 transition-all">
+                查看全部 <i class="fa fa-angle-right ml-1"></i>
+            </button>
+        </div>
+
+        <!-- 话题列表 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- 话题1 -->
+            <div class="glass rounded-xl overflow-hidden card-hover">
+                <img src="https://picsum.photos/seed/tech1/600/300" alt="话题图片" class="w-full h-48 object-cover">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="px-3 py-1 rounded-full bg-primary/20 text-primary text-sm">科技</span>
+                        <span class="text-light/60 text-sm"><i class="fa fa-eye mr-1"></i>2.3k</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">人工智能未来发展趋势</h3>
+                    <p class="text-light/70 text-sm mb-4">探讨AI技术如何改变我们的生活与未来...</p>
+                    <button class="text-primary hover:underline">参与讨论 <i class="fa fa-arrow-right ml-1"></i></button>
+                </div>
+            </div>
+
+            <!-- 话题2 -->
+            <div class="glass rounded-xl overflow-hidden card-hover">
+                <img src="https://picsum.photos/seed/life1/600/300" alt="话题图片" class="w-full h-48 object-cover">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="px-3 py-1 rounded-full bg-secondary/20 text-secondary text-sm">生活</span>
+                        <span class="text-light/60 text-sm"><i class="fa fa-eye mr-1"></i>3.1k</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">当代年轻人的生活态度</h3>
+                    <p class="text-light/70 text-sm mb-4">分享你的生活方式，寻找同频共振的朋友...</p>
+                    <button class="text-secondary hover:underline">参与讨论 <i class="fa fa-arrow-right ml-1"></i></button>
+                </div>
+            </div>
+
+            <!-- 话题3 -->
+            <div class="glass rounded-xl overflow-hidden card-hover">
+                <img src="https://picsum.photos/seed/art1/600/300" alt="话题图片" class="w-full h-48 object-cover">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="px-3 py-1 rounded-full bg-accent/20 text-accent text-sm">创意</span>
+                        <span class="text-light/60 text-sm"><i class="fa fa-eye mr-1"></i>1.8k</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">创意设计与艺术表达</h3>
+                    <p class="text-light/70 text-sm mb-4">用创意打破边界，用艺术诠释内心世界...</p>
+                    <button class="text-accent hover:underline">参与讨论 <i class="fa fa-arrow-right ml-1"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 活跃用户区 -->
+<section class="py-20 px-4">
+    <div class="container mx-auto">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold mb-4">社区<span class="text-gradient">达人</span></h2>
+            <p class="text-light/70 max-w-2xl mx-auto">来自各行各业的优秀创作者，分享优质内容，传递思想力量</p>
+        </div>
+
+        <!-- 用户列表 -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            <!-- 用户1 -->
+            <div class="text-center card-hover">
+                <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
+                    <img src="https://picsum.photos/seed/user1/200/200" class="w-full h-full rounded-full object-cover border-2 border-dark" alt="用户头像">
+                </div>
+                <h3 class="font-bold text-lg">星云学长</h3>
+                <p class="text-light/60 text-sm">科技博主</p>
+            </div>
+
+            <!-- 用户2 -->
+            <div class="text-center card-hover">
+                <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r from-secondary to-accent p-0.5">
+                    <img src="https://picsum.photos/seed/user2/200/200" class="w-full h-full rounded-full object-cover border-2 border-dark" alt="用户头像">
+                </div>
+                <h3 class="font-bold text-lg">小星同学</h3>
+                <p class="text-light/60 text-sm">创意设计师</p>
+            </div>
+
+            <!-- 用户3 -->
+            <div class="text-center card-hover">
+                <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r from-accent to-primary p-0.5">
+                    <img src="https://picsum.photos/seed/user3/200/200" class="w-full h-full rounded-full object-cover border-2 border-dark" alt="用户头像">
+                </div>
+                <h3 class="font-bold text-lg">云游诗人</h3>
+                <p class="text-light/60 text-sm">生活分享家</p>
+            </div>
+
+            <!-- 用户4 -->
+            <div class="text-center card-hover">
+                <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r from-primary to-secondary p-0.5">
+                    <img src="https://picsum.photos/seed/user4/200/200" class="w-full h-full rounded-full object-cover border-2 border-dark" alt="用户头像">
+                </div>
+                <h3 class="font-bold text-lg">科技玩家</h3>
+                <p class="text-light/60 text-sm">数码爱好者</p>
+            </div>
+
+            <!-- 用户5 -->
+            <div class="text-center card-hover">
+                <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r from-secondary to-accent p-0.5">
+                    <img src="https://picsum.photos/seed/user5/200/200" class="w-full h-full rounded-full object-cover border-2 border-dark" alt="用户头像">
+                </div>
+                <h3 class="font-bold text-lg">星云使者</h3>
+                <p class="text-light/60 text-sm">社区管理员</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 底部区域 -->
+<footer class="py-12 px-4 glass mt-20">
+    <div class="container mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-8 mb-8">
+            <!-- 品牌 -->
+            <div class="flex items-center gap-2">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-accent flex items-center justify-center">
+                    <i class="fa fa-star-o text-xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gradient">星云社区</h2>
+            </div>
+
+            <!-- 链接 -->
+            <div class="flex gap-6">
+                <a href="#" class="hover:text-gradient transition-colors"><i class="fa fa-github text-xl"></i></a>
+                <a href="#" class="hover:text-gradient transition-colors"><i class="fa fa-weibo text-xl"></i></a>
+                <a href="#" class="hover:text-gradient transition-colors"><i class="fa fa-wechat text-xl"></i></a>
+                <a href="#" class="hover:text-gradient transition-colors"><i class="fa fa-qq text-xl"></i></a>
+            </div>
+        </div>
+
+        <div class="border-t border-white/10 pt-8 text-center text-light/60 text-sm">
+            <p>© 2025 星云社区 All Rights Reserved. 连接每一个有趣的灵魂</p>
+        </div>
+    </div>
+</footer>
+
+<!-- JS脚本 - 粒子特效 + 3D交互 + 页面逻辑 -->
+<script>
+    // 导航栏滚动效果
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) {
+            navbar.classList.add('py-2', 'shadow-lg', 'shadow-primary/10');
+            navbar.classList.remove('py-3');
+        } else {
+            navbar.classList.add('py-3');
+            navbar.classList.remove('py-2', 'shadow-lg', 'shadow-primary/10');
+        }
+    });
+
+    // 移动端菜单
+    const menuBtn = document.getElementById('menuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    menuBtn.addEventListener('click', () => {
+        mobileMenu.classList.toggle('translate-x-full');
+    });
+
+    // 粒子背景初始化
+    particlesJS('particles-js', {
+        particles: {
+            number: { value: 80, density: { enable: true, value_area: 800 } },
+            color: { value: '#ffffff' },
+            shape: { type: 'circle' },
+            opacity: { value: 0.5, random: true },
+            size: { value: 3, random: true },
+            line_linked: {
+                enable: true,
+                distance: 150,
+                color: '#ffffff',
+                opacity: 0.2,
+                width: 1
+            },
+            move: {
+                enable: true,
+                speed: 1,
+                direction: 'none',
+                random: true,
+                straight: false,
+                out_mode: 'out',
+                bounce: false
+            }
+        },
+        interactivity: {
+            detect_on: 'canvas',
+            events: {
+                onhover: { enable: true, mode: 'grab' },
+                onclick: { enable: true, mode: 'push' },
+                resize: true
+            }
+        },
+        retina_detect: true
+    });
+
+    // 3D交互元素简化版
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('3d-element');
+    container.appendChild(canvas);
+
+    canvas.width = container.offsetWidth;
+    canvas.height = container.offsetHeight;
+
+    let balls = [];
+    for (let i = 0; i < 30; i++) {
+        balls.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: Math.random() * 20 + 10,
+            dx: Math.random() * 2 - 1,
+            dy: Math.random() * 2 - 1,
+            color: `hsl(${Math.random() * 60 + 250}, 70%, 60%)`
+        });
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        balls.forEach(ball => {
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = ball.color;
+            ctx.fill();
+            ctx.closePath();
+
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+                ball.dx = -ball.dx;
+            }
+            if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
+                ball.dy = -ball.dy;
+            }
+        });
+    }
+    animate();
+
+    // 鼠标跟随3D效果
+    window.addEventListener('mousemove', (e) => {
+        const x = e.clientX / window.innerWidth - 0.5;
+        const y = e.clientY / window.innerHeight - 0.5;
+        container.style.transform = `perspective(1000px) rotateY(${x * 20}deg) rotateX(${-y * 20}deg)`;
+    });
+</script>
+</body>
+</html>

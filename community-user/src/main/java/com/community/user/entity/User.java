@@ -55,6 +55,18 @@ public class User {
 
     private Integer collectCount;
 
+    /** 获赞总数（冗余统计） */
+    private Integer likeCount;
+
+    /** 是否隐藏喜欢列表: 0公开 1隐藏 */
+    private Integer hideLikes;
+
+    /** 是否隐藏收藏列表: 0公开 1隐藏 */
+    private Integer hideCollects;
+
+    /** 个人标签，逗号分隔 */
+    private String bioTags;
+
     private LocalDate lastCheckin;
 
     private Integer continuousCheckin;

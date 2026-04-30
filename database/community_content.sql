@@ -2,7 +2,8 @@
 SQLyog Ultimate v12.08 (64 bit)
 MySQL - 8.0.28 : Database - community_content
 *********************************************************************
-*/
+*/
+
 
 /*!40101 SET NAMES utf8 */;
 
@@ -94,6 +95,7 @@ CREATE TABLE `post` (
   `vote_id` bigint DEFAULT NULL COMMENT '关联投票ID',
   `column_id` bigint DEFAULT NULL COMMENT '所属专栏ID',
   `is_anonymous` tinyint DEFAULT '0' COMMENT '是否匿名',
+  `is_public` tinyint DEFAULT '1' COMMENT '是否公开: 1公开 0私密',
   `summary` varchar(255) DEFAULT '' COMMENT 'AI摘要',
   `keywords` varchar(255) DEFAULT '' COMMENT '关键词',
   `topic_ids` varchar(255) DEFAULT '' COMMENT '话题ID',
@@ -103,7 +105,9 @@ CREATE TABLE `post` (
   `like_count` int DEFAULT '0' COMMENT '点赞',
   `comment_count` int DEFAULT '0' COMMENT '评论',
   `collect_count` int DEFAULT '0' COMMENT '收藏',
-  `status` tinyint DEFAULT '1' COMMENT '1正常0删除2审核',
+  `status` tinyint DEFAULT '1' COMMENT '1正常0删除2审核中3打回',
+  `reject_reason` varchar(1000) DEFAULT NULL COMMENT '审核打回原因',
+  KEY `idx_is_public` (`is_public`),
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `share_count` int DEFAULT '0' COMMENT '分享数',
@@ -149,7 +153,8 @@ CREATE TABLE `post_report` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `post_id` bigint NOT NULL COMMENT '被举报帖子ID',
   `user_id` bigint NOT NULL COMMENT '举报人ID',
-  `reason` varchar(255) NOT NULL COMMENT '举报原因',
+  `reason` varchar(255) NOT NULL COMMENT '举报类型（可多选）',
+  `description` varchar(500) DEFAULT NULL COMMENT '详细描述',
   `status` tinyint DEFAULT '0' COMMENT '0待处理 1已处理 2已忽略',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

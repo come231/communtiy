@@ -5,8 +5,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.community.common.constant.CommonConstant;
 import com.community.common.constant.RedisKeyConstant;
+import com.community.common.dto.UserLikedPostItemDTO;
 import com.community.common.exception.BusinessException;
+import com.community.common.feign.InteractLikeFeignClient;
 import com.community.common.result.PageResult;
+import com.community.common.result.Result;
 import com.community.common.result.ResultCode;
 import com.community.common.util.ContextHolder;
 import com.community.common.util.JwtUtil;
@@ -28,6 +31,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -37,6 +41,8 @@ public class UserService {
     private final UserMapper userMapper;
     private final UserFollowMapper userFollowMapper;
     private final UserBlockMapper userBlockMapper;
+    private final UserTagMapper userTagMapper;
+    private final InteractLikeFeignClient interactLikeFeignClient;
     private final PointsRecordMapper pointsRecordMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
@@ -258,6 +264,10 @@ public class UserService {
         vo.setPoints(user.getPoints());
         vo.setPostCount(user.getPostCount());
         vo.setCollectCount(user.getCollectCount());
+        vo.setLikeCount(user.getLikeCount());
+        vo.setHideLikes(user.getHideLikes());
+        vo.setHideCollects(user.getHideCollects());
+        vo.setBioTags(user.getBioTags());
         vo.setContinuousCheckin(user.getContinuousCheckin());
         vo.setIsFollowed(isFollowed);
 
@@ -309,5 +319,88 @@ public class UserService {
         }
         user.setStatus(status);
         userMapper.updateById(user);
+    }
+
+    /**
+     * 更新用户获赞数（内部调用）
+     */
+    @Transactional
+    public void updateLikeCount(Long userId, Integer delta) {
+        if (userId == null || delta == null) return;
+        User user = userMapper.selectById(userId);
+        if (user == null) return;
+
+        int newCount = Math.max(0, (user.getLikeCount() != null ? user.getLikeCount() : 0) + delta);
+        user.setLikeCount(newCount);
+        userMapper.updateById(user);
+    }
+
+    /**
+     * 获取隐私设置
+     */
+    public Map<String, Object> getPrivacySettings(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        Map<String, Object> settings = new HashMap<>();
+        settings.put("hideLikes", user.getHideLikes() != null && user.getHideLikes() == 1);
+        settings.put("hideCollects", user.getHideCollects() != null && user.getHideCollects() == 1);
+        return settings;
+    }
+
+    /**
+     * 更新隐私设置
+     */
+    @Transactional
+    public void updatePrivacySettings(Long userId, Map<String, Integer> settings) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        if (settings.containsKey("hideLikes")) {
+            user.setHideLikes(settings.get("hideLikes") != null && settings.get("hideLikes") == 1 ? 1 : 0);
+        }
+        if (settings.containsKey("hideCollects")) {
+            user.setHideCollects(settings.get("hideCollects") != null && settings.get("hideCollects") == 1 ? 1 : 0);
+        }
+        userMapper.updateById(user);
+    }
+
+    /**
+     * 获取用户喜欢的帖子列表
+     */
+    public PageResult<Map<String, Object>> getUserLikedPosts(Long viewerId, Long userId, Integer pageNum, Integer pageSize) {
+        if (userId == null) {
+            throw new BusinessException(ResultCode.VALIDATE_FAILED);
+        }
+
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+
+        // 检查隐私设置：非本人访问时，如果用户隐藏了喜欢列表，则返回空
+        boolean isOwner = viewerId != null && viewerId.equals(userId);
+        if (!isOwner && user.getHideLikes() != null && user.getHideLikes() == 1) {
+            return new PageResult<>(Collections.emptyList(), 0L, pageSize, pageNum);
+        }
+
+        Result<PageResult<UserLikedPostItemDTO>> feignResult =
+                interactLikeFeignClient.pageUserPostLikes(userId, pageNum, pageSize);
+        if (feignResult == null || !feignResult.isSuccess() || feignResult.getData() == null) {
+            log.warn("拉取用户点赞帖子失败 userId={}, msg={}", userId,
+                    feignResult != null ? feignResult.getMessage() : "null response");
+            return new PageResult<>(Collections.emptyList(), 0L, pageSize, pageNum);
+        }
+        PageResult<UserLikedPostItemDTO> data = feignResult.getData();
+        List<Map<String, Object>> records = data.getRecords().stream().map(like -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("postId", like.getPostId());
+            map.put("likeTime", like.getLikeTime());
+            return map;
+        }).collect(Collectors.toList());
+
+        return new PageResult<>(records, data.getTotal(), data.getSize(), data.getCurrent());
     }
 }

@@ -1,0 +1,16 @@
+# 语义向量检测配置（可选，默认启用内存版）
+content:
+  audit:
+    vector:
+      enabled: true                           # 是否启用语义向量检测
+      threshold: 0.82                         # 相似度阈值，低于此值视为不相似
+      top-k: 3                                # 返回最相似的K个样本
+      min-score-for-block: 0.90              # 极高相似度（≥0.9）直接拦截
+
+spring:
+  ai:
+    embedding:
+      enabled: false                          # 是否启用OpenAI Embedding API
+      model: text-embedding-3-small          # 模型：text-embedding-3-small(1536维) 或 3-large
+      # API Key从主配置继承，或单独指定
+      # base-url: https://api.openai.com

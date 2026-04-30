@@ -1,7 +1,7 @@
 {
   "miniprogramRoot": "miniprogram/",
-  "projectname": "TechCommunity",
-  "description": "TechCommunity微信小程序",
+  "projectname": "星云社区",
+  "description": "星云社区微信小程序（与 Vue 管理端/用户端共用 Spring Cloud 网关）",
   "appid": "wx454e5e490af70252",
   "setting": {
     "urlCheck": false,

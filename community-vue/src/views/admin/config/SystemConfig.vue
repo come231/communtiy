@@ -6,6 +6,10 @@
     </div>
 
     <template v-else>
+      <div v-if="configGroups.length === 0" class="text-center py-16 bg-white rounded-xl border border-dashed border-gray-200 text-gray-500">
+        <p class="text-sm">暂无配置项</p>
+        <p class="text-xs mt-2 text-gray-400">请确认数据库已执行 `database/community_admin.sql`，并重启管理端服务</p>
+      </div>
       <!-- 配置分组 -->
       <div v-for="group in configGroups" :key="group.key" class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-3 cursor-pointer hover:bg-gray-50/50 transition-colors" @click="toggleGroup(group.key)">
@@ -50,12 +54,12 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ChevronRight, Globe, Shield, Bell, Palette, Image, Database, Clock } from 'lucide-vue-next'
+import { ChevronRight, Globe, Shield, Bell, Palette, Image, Database, Sparkles } from 'lucide-vue-next'
 import { Loading } from '@element-plus/icons-vue'
 import { adminApi } from '@/api'
 
 interface SysConfig {
-  id: number
+  id?: number
   configKey: string
   configName: string
   configValue: string
@@ -67,12 +71,15 @@ interface SysConfig {
 
 const loading = ref(false)
 const configList = ref<SysConfig[]>([])
-const expandedGroups = reactive(new Set(['basic', 'security', 'content']))
+const expandedGroups = reactive(new Set(['basic', 'security', 'content', 'ai']))
+
+const GROUP_ORDER = ['basic', 'security', 'content', 'ai', 'ui', 'upload', 'system']
 
 const groupIcons: Record<string, any> = {
   basic: Globe,
   security: Shield,
   content: Bell,
+  ai: Sparkles,
   ui: Palette,
   upload: Image,
   system: Database,
@@ -82,6 +89,7 @@ const groupIconColors: Record<string, string> = {
   basic: 'text-blue-500',
   security: 'text-red-500',
   content: 'text-orange-500',
+  ai: 'text-violet-500',
   ui: 'text-purple-500',
   upload: 'text-cyan-500',
   system: 'text-green-500',
@@ -91,6 +99,7 @@ const groupTitles: Record<string, string> = {
   basic: '站点基本设置',
   security: '安全设置',
   content: '内容管理设置',
+  ai: 'AI 设置',
   ui: '界面显示设置',
   upload: '文件上传设置',
   system: '系统运行参数',
@@ -137,8 +146,18 @@ function organizeConfigs(configs: SysConfig[]) {
     }
     groupMap.get(groupKey)!.push(config)
   })
-  
-  groupMap.forEach((items, key) => {
+
+  const keys = [...groupMap.keys()].sort((a, b) => {
+    const ia = GROUP_ORDER.indexOf(a)
+    const ib = GROUP_ORDER.indexOf(b)
+    if (ia === -1 && ib === -1) return a.localeCompare(b)
+    if (ia === -1) return 1
+    if (ib === -1) return -1
+    return ia - ib
+  })
+
+  keys.forEach((key) => {
+    const items = groupMap.get(key)!
     configGroups.push({
       key,
       title: groupTitles[key] || key,
@@ -151,7 +170,8 @@ function organizeConfigs(configs: SysConfig[]) {
 
 async function updateConfig(item: SysConfig, value: string) {
   try {
-    await adminApi.updateConfig(item.id, value)
+    const key = item.id != null && item.id !== undefined ? item.id : item.configKey
+    await adminApi.updateConfig(key, value)
     item.configValue = value
     ElMessage.success('配置已保存')
   } catch (e: any) {

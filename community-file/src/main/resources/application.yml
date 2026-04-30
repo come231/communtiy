@@ -1,6 +1,12 @@
 server:
   port: 8097
 
+# 存储：local=本机 upload.path；oss=使用下方阿里云 OSS
+upload:
+  storage: ${UPLOAD_STORAGE:oss}
+  path: ./uploads/
+  public-url-prefix: ""
+
 spring:
   application:
     name: community-file
@@ -14,12 +20,35 @@ spring:
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
   servlet:
+    # 与 aliyun.oss.max-file-size 对齐，大视频需放宽
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 100MB
+      max-request-size: 120MB
 
-upload:
-  path: ./uploads/
+# 阿里云OSS
+aliyun:
+  oss:
+    # 填写Bucket所在地域对应的Endpoint。以华东1（杭州）为例，Endpoint填写为https://oss-cn-hangzhou.aliyuncs.com。
+    endpoint: oss-cn-beijing.aliyuncs.com
+    # 阿里云账号AccessKey拥有所有API的访问权限，风险很高。强烈建议您创建并使用RAM用户进行API访问或日常运维，请登录RAM控制台创建RAM用户。
+    access-key-id: LTAI5tAnkmXCL38oF2MGx2tp
+    # 阿里云账号AccessKey Secret
+    access-key-secret: gF2fXIXmVTIg8S4ln5m2ueuu8CkJxv
+    # 填写Bucket名称，例如examplebucket。
+    bucket-name: community0123
+    # 文件上传后的访问域名（仅 private-read: false 时写库、302 用）
+    base-url: https://community0123.oss-cn-beijing.aliyuncs.com/
+    # 文件大小限制
+    max-file-size: 100MB
+    # 非公共读时不在 DB 存永久 URL，/file/download 使用预签名
+    private-read: true
+    # 预签名 GET 有效时间（秒）
+    presign-expire-seconds: 3600
+# 与 community-community 的 community.file-gc.internal-token 一致，用于 /file/internal/gc/orphans
+community:
+  file:
+    gc:
+      internal-token: ${FILE_GC_INTERNAL_TOKEN:}
 
 mybatis-plus:
   configuration:

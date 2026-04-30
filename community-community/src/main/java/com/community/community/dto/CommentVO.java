@@ -20,4 +20,6 @@ public class CommentVO {
     private String replyUserName;
     private Boolean isLiked;
     private List<CommentVO> replies;
+    /** 与 imageFileIds 对应，/api/file/download 路径或前端 resolveFileUrl 用 */
+    private List<String> imageUrls;
 }

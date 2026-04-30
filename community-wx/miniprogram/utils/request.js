@@ -1,5 +1,6 @@
-// 请求工具类
-var BASE_URL = 'http://localhost:8095'
+// 星云社区 — 统一 HTTP 封装（经网关访问各微服务，响应体为 Result<T>：code / message / data）
+var appConfig = require('../config.js')
+var cfg = appConfig.getConfig()
 
 var Request = (function() {
   function Request() {
@@ -11,6 +12,10 @@ var Request = (function() {
       Request.instance = new Request()
     }
     return Request.instance
+  }
+
+  Request.prototype.getBaseUrl = function() {
+    return cfg.baseUrl
   }
 
   Request.prototype.getHeader = function() {
@@ -28,31 +33,48 @@ var Request = (function() {
     return header
   }
 
+  /** 解析网关 JSON；非 JSON（如网关 HTML 错误页）直接提示 */
+  Request.prototype.parseResult = function(raw) {
+    if (raw == null || typeof raw !== 'object') {
+      return { ok: false, err: '服务返回格式异常' }
+    }
+    if (typeof raw.code !== 'number') {
+      return { ok: false, err: '服务返回格式异常' }
+    }
+    return { ok: true, payload: raw }
+  }
+
   Request.prototype.request = function(options) {
-    var _this = this
+    var _this2 = this
     var url = options.url
     var method = options.method || 'GET'
     var data = options.data
     var header = options.header || {}
     var loading = options.loading !== false
 
-    var _this2 = this
     return new Promise(function(resolve, reject) {
       if (loading) {
         wx.showLoading({ title: '加载中...', mask: true })
       }
 
       wx.request({
-        url: BASE_URL + url,
+        url: cfg.baseUrl + url,
         method: method,
         data: data,
         header: Object.assign({}, _this2.getHeader(), header),
+        timeout: cfg.requestTimeoutMs || 30000,
         success: function(res) {
           if (loading) {
             wx.hideLoading()
           }
           if (res.statusCode >= 200 && res.statusCode < 300) {
-            var response = res.data
+            var parsed = _this2.parseResult(res.data)
+            if (!parsed.ok) {
+              wx.showToast({ title: parsed.err, icon: 'none' })
+              reject(new Error(parsed.err))
+              return
+            }
+            var response = parsed.payload
             if (response.code === 200) {
               resolve(response.data)
             } else if (response.code === 401) {
@@ -66,9 +88,10 @@ var Request = (function() {
                 icon: 'none',
                 duration: 2000,
               })
-              reject(new Error(response.message))
+              reject(new Error(response.message || '请求失败'))
             }
           } else {
+            wx.showToast({ title: 'HTTP ' + res.statusCode, icon: 'none' })
             reject(res)
           }
         },
@@ -78,7 +101,7 @@ var Request = (function() {
           }
           if (err.errMsg && err.errMsg.indexOf('request:fail') !== -1) {
             wx.showToast({
-              title: '网络请求失败',
+              title: '网络请求失败，请检查网关地址与域名白名单',
               icon: 'none',
             })
           }

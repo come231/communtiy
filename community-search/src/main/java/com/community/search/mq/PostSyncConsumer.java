@@ -21,25 +21,22 @@ public class PostSyncConsumer {
      * 监听帖子同步队列，处理帖子新增/更新/删除事件
      */
     @RabbitListener(queues = "community.search.sync.queue")
-    public void handlePostSync(String message) {
+    public void handlePostSync(Map<String, Object> message) {
         try {
             log.info("收到帖子同步消息: {}", message);
 
-            Map<String, Object> messageMap = objectMapper.readValue(message, Map.class);
-            String action = (String) messageMap.get("action");
+            String action = (String) message.get("action");
 
             if ("DELETE".equalsIgnoreCase(action)) {
                 // 删除帖子
-                Number postIdNum = (Number) messageMap.get("id");
+                Number postIdNum = (Number) message.get("id");
                 if (postIdNum != null) {
                     searchService.deletePostFromEs(postIdNum.longValue());
                 }
             } else {
                 // 新增或更新：同步到ES
-                @SuppressWarnings("unchecked")
-                Map<String, Object> postData = (Map<String, Object>) messageMap;
                 // 转换为ES文档格式
-                Map<String, Object> esDoc = convertToEsDocument(postData);
+                Map<String, Object> esDoc = convertToEsDocument(message);
                 searchService.syncPostToEs(esDoc);
             }
         } catch (Exception e) {

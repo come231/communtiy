@@ -101,4 +101,6 @@ public class RabbitMQConfig {
     public Binding aiReviewBinding() {
         return BindingBuilder.bind(aiReviewQueue()).to(aiExchange()).with(MQConstant.AI_REVIEW_ROUTING_KEY);
     }
+
+
 }

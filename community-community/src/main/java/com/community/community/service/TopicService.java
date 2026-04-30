@@ -1,7 +1,9 @@
 package com.community.community.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.community.common.exception.BusinessException;
+import com.community.common.result.PageResult;
 import com.community.common.result.ResultCode;
 import com.community.common.util.ContextHolder;
 import com.community.community.entity.Topic;
@@ -12,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -39,6 +42,22 @@ public class TopicService {
                         .eq(Topic::getStatus, 1)
                         .eq(Topic::getIsHot, 1)
                         .orderByDesc(Topic::getPostCount));
+    }
+
+    /**
+     * 关键词搜索话题（分页），用于搜索页
+     */
+    public PageResult<Topic> searchTopics(String keyword, int pageNum, int pageSize) {
+        Page<Topic> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<Topic> w = new LambdaQueryWrapper<>();
+        w.eq(Topic::getStatus, 1);
+        if (StringUtils.hasText(keyword)) {
+            String kw = keyword.trim();
+            w.and(x -> x.like(Topic::getName, kw).or().like(Topic::getDescription, kw));
+        }
+        w.orderByDesc(Topic::getPostCount);
+        Page<Topic> result = topicMapper.selectPage(page, w);
+        return new PageResult<>(result.getRecords(), result.getTotal(), result.getSize(), result.getCurrent());
     }
 
     public Topic getTopicDetail(Long topicId) {

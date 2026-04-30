@@ -30,30 +30,38 @@ public class DashboardService {
             // 总用户数（从用户服务获取）
             try {
                 Result<Map<String, Object>> userStatsResult = userFeignClient.getUserStats();
-                if (userStatsResult.isSuccess()) {
+                if (userStatsResult != null && userStatsResult.isSuccess() && userStatsResult.getData() != null) {
                     Map<String, Object> userStats = userStatsResult.getData();
-                    vo.setTotalUserCount((Long) userStats.getOrDefault("totalUserCount", 0L));
+                    vo.setTotalUserCount(((Number) userStats.getOrDefault("totalUserCount", 0L)).longValue());
+                    vo.setTodayNewUsers(((Number) userStats.getOrDefault("todayNewUsers", 0L)).longValue());
                 } else {
                     vo.setTotalUserCount(0L);
+                    vo.setTodayNewUsers(0L);
                 }
             } catch (Exception e) {
+                log.warn("获取用户统计数据失败: {}", e.getMessage());
                 vo.setTotalUserCount(0L);
+                vo.setTodayNewUsers(0L);
             }
 
             // 总帖子数（从社区服务获取）
             try {
                 Result<Map<String, Object>> postStatsResult = postFeignClient.getPostStats();
-                if (postStatsResult.isSuccess()) {
+                if (postStatsResult != null && postStatsResult.isSuccess() && postStatsResult.getData() != null) {
                     Map<String, Object> postStats = postStatsResult.getData();
-                    vo.setTotalPostCount((Long) postStats.getOrDefault("totalPostCount", 0L));
-                    vo.setTotalCommentCount((Long) postStats.getOrDefault("totalCommentCount", 0L));
+                    vo.setTotalPostCount(((Number) postStats.getOrDefault("totalPostCount", 0L)).longValue());
+                    vo.setTotalCommentCount(((Number) postStats.getOrDefault("totalCommentCount", 0L)).longValue());
+                    vo.setTodayNewPosts(((Number) postStats.getOrDefault("todayNewPosts", 0L)).longValue());
                 } else {
                     vo.setTotalPostCount(0L);
                     vo.setTotalCommentCount(0L);
+                    vo.setTodayNewPosts(0L);
                 }
             } catch (Exception e) {
+                log.warn("获取帖子统计数据失败: {}", e.getMessage());
                 vo.setTotalPostCount(0L);
                 vo.setTotalCommentCount(0L);
+                vo.setTodayNewPosts(0L);
             }
 
             // 今日活跃用户（从安全库查询）
@@ -63,6 +71,7 @@ public class DashboardService {
                         "SELECT COUNT(DISTINCT user_id) FROM operation_log WHERE create_time >= ?",
                         Long.class, todayStart));
             } catch (Exception e) {
+                log.warn("获取今日活跃用户失败: {}", e.getMessage());
                 vo.setTodayActiveUser(0L);
             }
 
@@ -71,7 +80,43 @@ public class DashboardService {
                 vo.setPendingReportCount(jdbcTemplate.queryForObject(
                         "SELECT COUNT(*) FROM report WHERE status = 0", Long.class));
             } catch (Exception e) {
+                log.warn("获取待处理举报数量失败: {}", e.getMessage());
                 vo.setPendingReportCount(0L);
+            }
+
+            // 计算增长率
+            try {
+                List<Map<String, Object>> userTrendData = getUserTrend(7);
+                List<Map<String, Object>> postTrendData = getPostTrend(7);
+
+                if (userTrendData.size() >= 2) {
+                    long todayUsers = ((Number) userTrendData.get(userTrendData.size() - 1).get("count")).longValue();
+                    long yesterdayUsers = ((Number) userTrendData.get(userTrendData.size() - 2).get("count")).longValue();
+                    vo.setUserTrend(yesterdayUsers > 0 ? (int) ((todayUsers - yesterdayUsers) * 100 / yesterdayUsers) : 0);
+                }
+
+                if (postTrendData.size() >= 2) {
+                    long todayPosts = ((Number) postTrendData.get(postTrendData.size() - 1).get("count")).longValue();
+                    long yesterdayPosts = ((Number) postTrendData.get(postTrendData.size() - 2).get("count")).longValue();
+                    vo.setPostTrend(yesterdayPosts > 0 ? (int) ((todayPosts - yesterdayPosts) * 100 / yesterdayPosts) : 0);
+                }
+
+                vo.setUserGrowth(userTrendData.stream().map(m -> ((Number) m.get("count")).intValue()).toList());
+                vo.setPostGrowth(postTrendData.stream().map(m -> ((Number) m.get("count")).intValue()).toList());
+
+                List<String> labels = new ArrayList<>();
+                LocalDate startDate = LocalDate.now().minusDays(6);
+                for (int i = 0; i < 7; i++) {
+                    labels.add(startDate.plusDays(i).getDayOfMonth() + "日");
+                }
+                vo.setLabels(labels);
+            } catch (Exception e) {
+                log.warn("计算趋势数据失败: {}", e.getMessage());
+                vo.setUserTrend(0);
+                vo.setPostTrend(0);
+                vo.setUserGrowth(Collections.emptyList());
+                vo.setPostGrowth(Collections.emptyList());
+                vo.setLabels(Collections.emptyList());
             }
         } catch (Exception e) {
             vo.setTotalUserCount(0L);
@@ -117,7 +162,15 @@ public class DashboardService {
                 result.add(dayData);
             }
         } catch (Exception e) {
+            log.warn("获取用户趋势数据失败: {}", e.getMessage());
             // 返回空数据
+            for (int i = 0; i < days; i++) {
+                LocalDate date = startDate.plusDays(i);
+                Map<String, Object> dayData = new HashMap<>();
+                dayData.put("date", date.toString());
+                dayData.put("count", 0L);
+                result.add(dayData);
+            }
         }
 
         return result;
@@ -148,7 +201,7 @@ public class DashboardService {
     }
 
     public List<Map<String, Object>> getLatestReports() {
-        String sql = "SELECT id, reporter_id, target_type, reason, status, create_time FROM report ORDER BY create_time DESC LIMIT 10";
+        String sql = "SELECT id, reporter_id, target_type, reason, description, status, create_time FROM report ORDER BY create_time DESC LIMIT 10";
         List<Map<String, Object>> reports = jdbcTemplate.queryForList(sql);
         List<Map<String, Object>> result = new ArrayList<>();
 
@@ -158,6 +211,7 @@ public class DashboardService {
             item.put("reporterId", report.get("reporter_id"));
             item.put("targetType", report.get("target_type"));
             item.put("reason", report.get("reason"));
+            item.put("description", report.get("description"));
             item.put("status", report.get("status"));
             item.put("createTime", report.get("create_time"));
             result.add(item);

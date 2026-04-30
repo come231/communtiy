@@ -39,7 +39,7 @@
             class="flex-1 flex flex-col items-center gap-1"
           >
             <div class="w-full max-w-[40px] bg-gradient-to-t from-primary to-blue-400 rounded-t-md transition-all hover:opacity-80 cursor-pointer relative group"
-                   :style="{ height: (bar / Math.max(...chartData.users) * 180) + 'px' }">
+                   :style="{ height: (bar / Math.max(...chartData.users, 1) * 180) + 'px' }">
               <span class="absolute -top-7 left-1/2 -translate-x-1/2 text-xs text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">{{ bar }}</span>
             </div>
             <span class="text-xs text-gray-400">{{ chartData.labels[i] }}</span>
@@ -59,7 +59,7 @@
             class="flex-1 flex flex-col items-center gap-1"
           >
             <div class="w-full max-w-[40px] bg-gradient-to-t from-green-500 to-emerald-400 rounded-t-md transition-all hover:opacity-80 cursor-pointer"
-                 :style="{ height: (bar / Math.max(...chartData.posts) * 180) + 'px' }"></div>
+                 :style="{ height: (bar / Math.max(...chartData.posts, 1) * 180) + 'px' }"></div>
             <span class="text-xs text-gray-400">{{ chartData.labels[i] }}</span>
           </div>
         </div>
@@ -183,19 +183,20 @@ onMounted(async () => {
     const data: any = await adminApi.dashboard()
     
     if (data) {
-      stats[0].value = data.userCount || 0
-      stats[0].trend = data.userTrend || 0
-      stats[1].value = data.todayUsers || 0
-      stats[1].trend = data.userGrowth?.[6] || 0
-      stats[2].value = data.postCount || 0
-      stats[2].trend = data.postTrend || 0
-      stats[3].value = data.activeUsers || 0
+      // 与 DashboardVO 字段对齐：totalUserCount / todayNewUsers / totalPostCount / todayActiveUser
+      stats[0].value = Number(data.totalUserCount ?? data.userCount ?? 0)
+      stats[0].trend = Number(data.userTrend ?? 0)
+      stats[1].value = Number(data.todayNewUsers ?? data.todayUsers ?? 0)
+      stats[1].trend = data.userGrowth?.[6] != null ? Number(data.userGrowth[6]) : 0
+      stats[2].value = Number(data.totalPostCount ?? data.postCount ?? 0)
+      stats[2].trend = Number(data.postTrend ?? 0)
+      stats[3].value = Number(data.todayActiveUser ?? data.activeUsers ?? 0)
       
-      if (data.userGrowth && data.userGrowth.length > 0) {
-        chartData.users = data.userGrowth
+      if (Array.isArray(data.userGrowth) && data.userGrowth.length > 0) {
+        chartData.users = data.userGrowth.map((n: any) => Number(n) || 0)
       }
-      if (data.postGrowth && data.postGrowth.length > 0) {
-        chartData.posts = data.postGrowth
+      if (Array.isArray(data.postGrowth) && data.postGrowth.length > 0) {
+        chartData.posts = data.postGrowth.map((n: any) => Number(n) || 0)
       }
       if (data.labels && data.labels.length > 0) {
         chartData.labels = data.labels

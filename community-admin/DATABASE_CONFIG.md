@@ -48,11 +48,11 @@ spring:
 - SensitiveWordMapper - 敏感词
 - RateLimitRecordMapper - 限流记录
 - TextReviewMapper - 文本审核记录
+- SysConfigMapper - 系统配置（表 `community_security.sys_config`）
 
 ### Admin数据库Mapper (com.community.admin.mapper.admin)
 - SysAdminMapper - 管理员表
 - SysAdminLogMapper - 管理员操作日志
-- SysConfigMapper - 系统配置
 
 ## 使用示例
 
@@ -155,12 +155,14 @@ public class DashboardService {
 - rate_limit_record - 限流记录表
 - report - 举报表
 - sensitive_word - 敏感词表
-- sys_config - 系统配置表（注意：这个可能需要移到admin库）
 - text_review - 文本审核记录表
 
 ### community_admin数据库
 - sys_admin - 管理员表
 - sys_admin_log - 管理员操作日志表
+- **sys_config** - 管理后台「系统配置」键值表（站点/安全/内容/AI 等）。`group_key='security'` 的项在 Vue 中显示为 **「安全设置」**；与 Spring Security 配置、**community_security** 库不是同一概念。
+  - 建表：`database/community_admin.sql`
+  - 扩展列与种子数据：`database/sys_config_expand.sql`（先执行 ALTER，再执行其中的 `INSERT IGNORE`）
 
 ### 其他数据库（通过Feign访问）
 - community_user - 用户数据

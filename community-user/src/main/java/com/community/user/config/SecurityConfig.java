@@ -38,7 +38,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/user/login", "/user/register", "/user/refresh", "/user/search",
                                 "/user/info", "/user/infoById","/user/my", "/user/following/**", "/user/followers/**", "/user/isFollowing/**",
-                                "/user/checkin", "/user/checkin/status", "/user/update","/user/admin/**"
+                                "/user/follow/**", "/user/checkin", "/user/checkin/status", "/user/update","/user/admin/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 );

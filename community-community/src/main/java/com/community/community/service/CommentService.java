@@ -1,14 +1,16 @@
 package com.community.community.service;
 
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.community.common.annotation.OperationLog;
 import com.community.common.constant.CommonConstant;
 import com.community.common.constant.RedisKeyConstant;
 import com.community.common.constant.MQConstant;
+import com.community.common.dto.FileInfoDTO;
 import com.community.common.exception.BusinessException;
+import com.community.common.feign.FileFeignClient;
 import com.community.common.result.PageResult;
+import com.community.common.result.Result;
 import com.community.common.result.ResultCode;
 import com.community.common.util.ContextHolder;
 import com.community.common.util.RedisUtil;
@@ -16,8 +18,10 @@ import com.community.common.util.SensitiveWordFilter;
 import com.community.community.dto.CommentDTO;
 import com.community.community.dto.CommentVO;
 import com.community.community.entity.Comment;
+import com.community.community.entity.CommentMedia;
 import com.community.community.entity.Post;
 import com.community.community.mapper.CommentMapper;
+import com.community.community.mapper.CommentMediaMapper;
 import com.community.community.mapper.PostMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,16 +30,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 评论：发表/展示；若以后支持编辑，仅应更新本表/comment_media 引用，不主动删改历史上传的 OSS 对象
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CommentService {
 
+    private static final String FILE_DL = "/api/file/download/";
+    private static final long COMMENT_MEDIA_MAX = 20L * 1024 * 1024;
+
     private final CommentMapper commentMapper;
+    private final CommentMediaMapper commentMediaMapper;
     private final PostMapper postMapper;
+    private final FileFeignClient fileFeignClient;
     private final SensitiveWordFilter sensitiveWordFilter;
     private final RabbitTemplate rabbitTemplate;
     private final RedisUtil redisUtil;
@@ -62,8 +78,53 @@ public class CommentService {
             throw new BusinessException(ResultCode.POST_NOT_FOUND);
         }
 
-        if (sensitiveWordFilter.containsSensitiveWord(dto.getContent())) {
+        String text = dto.getContent() != null ? dto.getContent().trim() : "";
+        List<Long> imgIds = new ArrayList<>();
+        if (dto.getImageFileIds() != null) {
+            for (String s : dto.getImageFileIds()) {
+                if (s == null || s.isBlank()) {
+                    continue;
+                }
+                String t = s.trim();
+                if (!t.matches("[0-9]+")) {
+                    throw new BusinessException("非法图片文件ID");
+                }
+                try {
+                    imgIds.add(Long.parseLong(t));
+                } catch (NumberFormatException e) {
+                    throw new BusinessException("非法图片文件ID");
+                }
+            }
+        }
+        if (text.isEmpty() && imgIds.isEmpty()) {
+            throw new BusinessException("评论内容或图片至少填写一项");
+        }
+        if (!text.isEmpty() && sensitiveWordFilter.containsSensitiveWord(text)) {
             throw new BusinessException(ResultCode.SENSITIVE_WORD_FOUND);
+        }
+
+        long imgBytes = 0;
+        List<FileInfoDTO> validatedFiles = Collections.emptyList();
+        if (!imgIds.isEmpty()) {
+            Result<List<FileInfoDTO>> fr = fileFeignClient.listInfos(imgIds);
+            if (fr == null || !fr.isSuccess() || fr.getData() == null || fr.getData().size() != imgIds.size()) {
+                throw new BusinessException("图片文件无效或已删除");
+            }
+            validatedFiles = fr.getData();
+            for (FileInfoDTO f : validatedFiles) {
+                if (f.getUserId() == null || !f.getUserId().equals(userId)) {
+                    throw new BusinessException("仅可使用本人上传的图片");
+                }
+                if (f.getMimeType() == null || !f.getMimeType().startsWith("image/")) {
+                    throw new BusinessException("评论仅支持图片附件");
+                }
+                if (f.getSize() != null) {
+                    imgBytes += f.getSize();
+                }
+            }
+            if (imgBytes > COMMENT_MEDIA_MAX) {
+                throw new BusinessException("评论配图总大小不能超过 20MB");
+            }
         }
 
         // 计算楼层号
@@ -73,13 +134,32 @@ public class CommentService {
         Comment comment = new Comment();
         comment.setPostId(dto.getPostId());
         comment.setUserId(userId);
-        comment.setContent(dto.getContent());
+        comment.setContent(text);
+        comment.setContentMode(imgIds.isEmpty() ? 0 : 1);
         comment.setParentId(dto.getParentId() != null ? dto.getParentId() : 0L);
         comment.setReplyUid(dto.getReplyUid() != null ? dto.getReplyUid() : 0L);
         comment.setLikeCount(0);
         comment.setStatus(CommonConstant.COMMENT_STATUS_NORMAL);
         comment.setFloor(floor.intValue());
         commentMapper.insert(comment);
+
+        Map<Long, FileInfoDTO> byFid = new HashMap<>();
+        for (FileInfoDTO f : validatedFiles) {
+            if (f.getId() != null) {
+                byFid.put(Long.parseLong(f.getId().trim()), f);
+            }
+        }
+        int sort = 0;
+        for (Long fid : imgIds) {
+            FileInfoDTO meta = byFid.get(fid);
+            CommentMedia cm = new CommentMedia();
+            cm.setCommentId(comment.getCommentId());
+            cm.setFileId(fid);
+            cm.setMediaKind(1);
+            cm.setSortOrder(sort++);
+            cm.setSizeBytes(meta != null && meta.getSize() != null ? meta.getSize() : 0L);
+            commentMediaMapper.insert(cm);
+        }
 
         // 更新帖子评论数
         post.setCommentCount(post.getCommentCount() + 1);
@@ -93,7 +173,8 @@ public class CommentService {
             msg.put("operatorId", userId);
             msg.put("relatedId", dto.getPostId());
             msg.put("relatedType", 1); // 1=帖子
-            msg.put("content", dto.getContent().length() > 50 ? dto.getContent().substring(0, 50) : dto.getContent());
+            String preview = text.isEmpty() ? "[图片]" : (text.length() > 50 ? text.substring(0, 50) : text);
+            msg.put("content", preview);
             msg.put("createTime", LocalDateTime.now());
             rabbitTemplate.convertAndSend(MQConstant.COMMUNITY_EXCHANGE, MQConstant.NOTICE_ROUTING_KEY, msg);
         }
@@ -161,6 +242,21 @@ public class CommentService {
             vo.setIsLiked(isLiked);
         } else {
             vo.setIsLiked(false);
+        }
+
+        try {
+            List<CommentMedia> cms = commentMediaMapper.listByCommentId(comment.getCommentId());
+            if (cms != null && !cms.isEmpty()) {
+                List<String> urls = new ArrayList<>();
+                for (CommentMedia cm : cms) {
+                    if (cm.getFileId() != null) {
+                        urls.add(FILE_DL + cm.getFileId());
+                    }
+                }
+                vo.setImageUrls(urls);
+            }
+        } catch (Exception e) {
+            log.debug("comment_media: {}", e.getMessage());
         }
 
         // 获取子回复

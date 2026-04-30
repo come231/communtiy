@@ -15,6 +15,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.unit.Fuzziness;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -50,7 +51,7 @@ public class SearchService {
         // 先尝试ES搜索
         try {
             PageResult<PostSearchDTO> esResult = searchFromEs(keyword, page, size);
-            log.warn("ES搜索成功: {}");
+            log.debug("ES搜索成功: keyword={}", keyword);
             if (esResult != null) {
                 return esResult;
             }
@@ -67,9 +68,12 @@ public class SearchService {
         SearchRequest searchRequest = new SearchRequest(POST_INDEX);
         SearchSourceBuilder sourceBuilder = new SearchSourceBuilder();
 
-        sourceBuilder.query(QueryBuilders.multiMatchQuery(keyword, "title", "content", "summary")
+        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
+        boolQuery.must(QueryBuilders.multiMatchQuery(keyword, "title", "content", "summary")
                 .type(MultiMatchQueryBuilder.Type.BEST_FIELDS)
                 .fuzziness(Fuzziness.AUTO));
+        boolQuery.filter(QueryBuilders.termQuery("status", 1));
+        sourceBuilder.query(boolQuery);
 
         sourceBuilder.from((pageNum - 1) * pageSize);
         sourceBuilder.size(pageSize);

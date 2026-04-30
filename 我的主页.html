@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>轻奢社区 - 用户主页</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    :root {
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --secondary: #a855f7;
+      --accent: #ec4899;
+      --dark: #1f2937;
+      --light: #f9fafb;
+      --gray: #6b7280;
+      --card-shadow: 0 10px 30px -5px rgba(99, 102, 241, 0.15);
+      --hover-shadow: 0 20px 40px -5px rgba(99, 102, 241, 0.25);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      background: linear-gradient(135deg, #f0f4ff 0%, #f8faff 100%);
+      min-height: 100vh;
+      color: var(--dark);
+      padding: 0;
+    }
+
+    /* 顶部封面 */
+    .cover {
+      width: 100%;
+      height: 240px;
+      background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
+      position: relative;
+      box-shadow: 0 8px 30px rgba(99,102,241,0.2);
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* 个人信息卡片 */
+    .profile-card {
+      background: white;
+      border-radius: 24px;
+      padding: 30px;
+      margin-top: -80px;
+      box-shadow: var(--card-shadow);
+      position: relative;
+      z-index: 10;
+      transition: var(--transition);
+    }
+
+    .profile-card:hover {
+      box-shadow: var(--hover-shadow);
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 25px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .avatar {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 6px solid white;
+      box-shadow: 0 0 0 4px var(--primary-light);
+      transition: var(--transition);
+    }
+
+    .avatar:hover {
+      transform: scale(1.05);
+    }
+
+    .profile-info {
+      flex: 1;
+    }
+
+    .username {
+      font-size: 32px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .user-bio {
+      font-size: 16px;
+      color: var(--gray);
+      margin-bottom: 15px;
+    }
+
+    .user-tags {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      padding: 6px 14px;
+      background: #f0f4ff;
+      color: var(--primary);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* 统计数字 */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin: 20px 0;
+    }
+
+    .stat {
+      text-align: center;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .stat:hover {
+      transform: translateY(-3px);
+    }
+
+    .stat-num {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--gray);
+      margin-top: 4px;
+    }
+
+    /* 按钮 */
+    .action-btns {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    .btn {
+      padding: 12px 28px;
+      border-radius: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 20px rgba(99,102,241,0.3);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+    }
+
+    .btn-outline:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* 导航栏 */
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+      margin: 30px 0 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .tab {
+      padding: 12px 22px;
+      background: white;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: var(--transition);
+      font-weight: 600;
+      color: var(--gray);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .tab.active {
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      color: white;
+    }
+
+    .tab:hover:not(.active) {
+      background: #f0f4ff;
+      color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    /* 内容区 */
+    .tab-content {
+      display: none;
+      animation: fade 0.5s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* 帖子卡片 */
+    .post-card {
+      background: white;
+      border-radius: 18px;
+      padding: 22px;
+      margin-bottom: 18px;
+      box-shadow: var(--card-shadow);
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .post-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--hover-shadow);
+    }
+
+    .post-title {
+      font-size: 19px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--dark);
+    }
+
+    .post-meta {
+      color: var(--gray);
+      font-size: 13px;
+      margin-bottom: 12px;
+      display: flex;
+      gap: 15px;
+    }
+
+    .post-actions {
+      display: flex;
+      gap: 20px;
+      color: var(--gray);
+      font-size: 14px;
+    }
+
+    .post-actions i {
+      margin-right: 5px;
+    }
+
+    .like.active {
+      color: var(--accent);
+    }
+
+    /* 动画 */
+    @keyframes fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .cover { height: 180px; }
+      .stats { gap: 20px; }
+      .stat-num { font-size: 22px; }
+    }
+  </style>
+</head>
+
+<body>
+<!-- 顶部封面 -->
+<div class="cover"></div>
+
+<div class="container">
+  <!-- 个人信息卡片 -->
+  <div class="profile-card">
+    <div class="profile-header">
+      <img src="https://picsum.photos/200/200" alt="头像" class="avatar">
+      <div class="profile-info">
+        <h1 class="username">辰星学长</h1>
+        <p class="user-bio">热爱前端开发 | 专注技术分享 | 社区优质创作者</p>
+        <div class="user-tags">
+          <span class="tag">前端开发</span>
+          <span class="tag">技术博主</span>
+          <span class="tag">原创作者</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 统计 -->
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num">42</div>
+        <div class="stat-label">帖子</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">168</div>
+        <div class="stat-label">关注</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">520</div>
+        <div class="stat-label">粉丝</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">99</div>
+        <div class="stat-label">获赞</div>
+      </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-btns">
+      <button class="btn btn-primary" id="followBtn">
+        <i class="fa fa-plus"></i> 关注TA
+      </button>
+      <button class="btn btn-outline">
+        <i class="fa fa-comment"></i> 发私信
+      </button>
+    </div>
+  </div>
+
+  <!-- 标签导航 -->
+  <div class="nav-tabs">
+    <div class="tab active" data-target="posts">全部帖子</div>
+    <div class="tab" data-target="likes">我喜欢</div>
+    <div class="tab" data-target="collect">收藏夹</div>
+    <div class="tab" data-target="plates">我的板块</div>
+  </div>
+
+  <!-- 全部帖子 -->
+  <div class="tab-content active" id="posts">
+    <div class="post-card">
+      <div class="post-title">【实战】从零搭建高端社区个人中心页面</div>
+      <div class="post-meta">发布于 2025-12-19 · 前端板块</div>
+      <div class="post-actions">
+        <span><i class="fa fa-eye"></i> 1268</span>
+        <span><i class="fa fa-comment"></i> 42</span>
+        <span class="like"><i class="fa fa-heart"></i> 99</span>
+      </div>
+    </div>
+
+    <div class="post-card">
+      <div class="post-title">CSS 高级动效技巧，让页面瞬间高端</div>
+      <div class="post-meta">发布于 2025-12-15 · 前端板块</div>
+      <div class="post-actions">
+        <span><i class="fa fa-eye"></i> 2680</span>
+        <span><i class="fa fa-comment"></i> 68</span>
+        <span class="like active"><i class="fa fa-heart"></i> 168</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 我喜欢（点赞） -->
+  <div class="tab-content" id="likes">
+    <div class="post-card">
+      <div class="post-title">JavaScript 设计模式精讲（干货收藏）</div>
+      <div class="post-meta">你点赞了 · 2025-12-10</div>
+    </div>
+    <div class="post-card">
+      <div class="post-title">前端性能优化实战指南</div>
+      <div class="post-meta">你点赞了 · 2025-12-05</div>
+    </div>
+  </div>
+
+  <!-- 收藏夹 -->
+  <div class="tab-content" id="collect">
+    <div class="post-card">
+      <div class="post-title">Vue3 + TypeScript 实战教程</div>
+      <div class="post-meta">你收藏了 · 前端板块</div>
+    </div>
+    <div class="post-card">
+      <div class="post-title">React 源码深度解析</div>
+      <div class="post-meta">你收藏了 · 前端板块</div>
+    </div>
+  </div>
+
+  <!-- 我的板块 -->
+  <div class="tab-content" id="plates">
+    <div class="post-card">
+      <div class="post-title" style="color:var(--primary)">📌 前端开发交流圈</div>
+      <div style="color:var(--gray);margin-top:8px">版主 · 成员 1280 人</div>
+    </div>
+    <div class="post-card">
+      <div class="post-title" style="color:var(--primary)">📌 技术分享大本营</div>
+      <div style="color:var(--gray);margin-top:8px">成员 · 活跃创作者聚集地</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // 标签切换
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.getAttribute('data-target');
+      document.getElementById(target).classList.add('active');
+    });
+  });
+
+  // 关注按钮
+  const followBtn = document.getElementById('followBtn');
+  followBtn.addEventListener('click', () => {
+    if(followBtn.innerHTML.includes('已关注')) {
+      followBtn.innerHTML = '<i class="fa fa-plus"></i> 关注TA';
+      followBtn.classList.remove('btn-outline');
+      followBtn.classList.add('btn-primary');
+    } else {
+      followBtn.innerHTML = '<i class="fa fa-check"></i> 已关注';
+      followBtn.classList.remove('btn-primary');
+      followBtn.classList.add('btn-outline');
+    }
+  });
+</script>
+</body>
+</html>

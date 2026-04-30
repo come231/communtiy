@@ -46,7 +46,10 @@ spring:
       global-cors:
         cors-configurations:
           '[/**]':
-            allowed-origin-patterns: "http://localhost:*"
+            # 本地开发：Vite 常用 localhost / 127.0.0.1 不同源需分别允许
+            allowed-origin-patterns:
+              - "http://localhost:*"
+              - "http://127.0.0.1:*"
             allowed-methods: "*"
             allowed-headers: "*"
             allow-credentials: true

@@ -9,14 +9,17 @@ const routes: RouteRecordRaw[] = [
       { path: '', redirect: '/home' },
       { path: 'home', name: 'Home', component: () => import('../views/user/home/HomePage.vue'), meta: { title: '首页' } },
       { path: 'post/:id', name: 'PostDetail', component: () => import('../views/user/post/PostDetail.vue'), meta: { title: '帖子详情' } },
+      { path: 'post/:id/edit', name: 'PostEdit', component: () => import('../views/user/post/PostEdit.vue'), meta: { title: '编辑帖子' } },
       { path: 'post/create', name: 'PostCreate', component: () => import('../views/user/post/PostCreate.vue'), meta: { title: '发布帖子' } },
       { path: 'section', name: 'Section', component: () => import('../views/user/section/SectionPage.vue'), meta: { title: '板块列表' } },
       { path: 'section/:id', name: 'SectionDetail', component: () => import('../views/user/section/SectionDetail.vue'), meta: { title: '板块详情' } },
+      { path: 'topic', name: 'TopicList', component: () => import('../views/user/topic/TopicPage.vue'), meta: { title: '话题列表' } },
       { path: 'topic/:id', name: 'Topic', component: () => import('../views/user/topic/TopicPage.vue'), meta: { title: '话题' } },
       { path: 'search', name: 'Search', component: () => import('../views/user/search/SearchPage.vue'), meta: { title: '搜索' } },
       { path: 'profile', name: 'Profile', component: () => import('../views/user/profile/ProfilePage.vue'), meta: { title: '个人中心' } },
       { path: 'user/:id', name: 'UserProfile', component: () => import('../views/user/user/UserProfile.vue'), meta: { title: '用户主页' } },
       { path: 'message', name: 'Message', component: () => import('../views/user/message/MessagePage.vue'), meta: { title: '消息' } },
+      { path: 'chat', name: 'PrivateChat', component: () => import('../views/user/message/PrivateChatPage.vue'), meta: { title: '私信聊天' } },
       { path: 'ai', name: 'AiChat', component: () => import('../views/user/ai/AiChatPage.vue'), meta: { title: 'AI助手' } },
     ],
   },
@@ -28,6 +31,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'dashboard', name: 'AdminDashboard', component: () => import('../views/admin/dashboard/DashboardPage.vue'), meta: { title: '数据仪表盘' } },
       { path: 'users', name: 'AdminUsers', component: () => import('../views/admin/user/UserManage.vue'), meta: { title: '用户管理' } },
       { path: 'posts', name: 'AdminPosts', component: () => import('../views/admin/content/PostManage.vue'), meta: { title: '帖子管理' } },
+      { path: 'ai-check-records', name: 'AdminAiCheckRecords', component: () => import('../views/admin/content/AiCheckRecordManage.vue'), meta: { title: 'AI审核记录' } },
       { path: 'reports', name: 'AdminReports', component: () => import('../views/admin/report/ReportManage.vue'), meta: { title: '举报处理' } },
       { path: 'sensitive', name: 'AdminSensitive', component: () => import('../views/admin/sensitive/SensitiveWordManage.vue'), meta: { title: '敏感词管理' } },
       { path: 'config', name: 'AdminConfig', component: () => import('../views/admin/config/SystemConfig.vue'), meta: { title: '系统配置' } },
@@ -53,7 +57,6 @@ const router = createRouter({
 })
 
 router.beforeEach((to, _from, next) => {
-  const userToken = localStorage.getItem('accessToken')
   const adminToken = localStorage.getItem('adminToken')
 
   // 管理后台路由守卫

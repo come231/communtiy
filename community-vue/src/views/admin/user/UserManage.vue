@@ -37,14 +37,14 @@
             <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50/50 transition-colors">
               <td class="px-5 py-4">
                 <div class="flex items-center gap-3">
-                  <img :src="user.avatar || defaultAvatar" class="w-10 h-10 rounded-full object-cover bg-gray-100" alt="" />
+                  <img :src="avatarDisplayUrl(user.avatar, defaultAvatar)" class="w-10 h-10 rounded-full object-cover bg-gray-100" alt="" />
                   <div>
                     <p class="font-medium text-gray-800">{{ user.nickname || user.username }}</p>
                     <p class="text-xs text-gray-400 mt-0.5">{{ user.phone || user.email || '-' }}</p>
                   </div>
                 </div>
               </td>
-              <td class="px-5 py-4 text-gray-600 text-xs">{{ formatTime(user.createTime || user.registerTime) }}</td>
+              <td class="px-5 py-4 text-gray-600 text-xs">{{ formatTime(user.createTime) }}</td>
               <td class="px-5 py-4">
                 <div class="flex gap-3 text-xs">
                   <span class="text-gray-600">{{ user.postCount || 0 }} 帖子</span>
@@ -102,7 +102,7 @@
     <el-dialog v-model="detailVisible" title="用户详情" width="600px">
       <div v-if="currentUser" class="space-y-4">
         <div class="flex items-center gap-4">
-          <img :src="currentUser.avatar || defaultAvatar" class="w-16 h-16 rounded-full object-cover bg-gray-100" alt="" />
+          <img :src="avatarDisplayUrl(currentUser.avatar, defaultAvatar)" class="w-16 h-16 rounded-full object-cover bg-gray-100" alt="" />
           <div>
             <p class="font-medium text-lg">{{ currentUser.nickname || currentUser.username }}</p>
             <p class="text-sm text-gray-500">ID: {{ currentUser.id }}</p>
@@ -131,6 +131,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminApi } from '@/api'
+import { avatarDisplayUrl } from '@/utils/resolveFileUrl'
 
 const defaultAvatar = 'https://placehold.co/40x40/409EFF/fff?text=U'
 

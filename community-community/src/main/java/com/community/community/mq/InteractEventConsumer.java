@@ -1,6 +1,7 @@
 package com.community.community.mq;
 
 import com.community.common.constant.MQConstant;
+import com.community.common.feign.UserFeignClient;
 import com.community.community.entity.Post;
 import com.community.community.mapper.PostMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,6 +26,7 @@ public class InteractEventConsumer {
     private final PostMapper postMapper;
     private final ObjectMapper objectMapper;
     private final RabbitTemplate rabbitTemplate;
+    private final UserFeignClient userFeignClient;
 
     /**
      * 监听点赞事件，更新帖子/评论的点赞计数，并发送通知
@@ -55,6 +57,14 @@ public class InteractEventConsumer {
                     post.setLikeCount(Math.max(0, post.getLikeCount() + delta));
                     postMapper.updateById(post);
                     log.info("更新帖子点赞数: postId={}, delta={}", targetId, delta);
+
+                    // 更新作者获赞总数
+                    try {
+                        int authorDelta = "like".equals(action) ? 1 : -1;
+                        userFeignClient.updateLikeCount(post.getUserId(), authorDelta);
+                    } catch (Exception ex) {
+                        log.warn("更新用户获赞数失败: userId={}", post.getUserId(), ex);
+                    }
 
                     // 发送点赞通知
                     if ("like".equals(action) && userId != null && !userId.equals(post.getUserId())) {

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>轻奢社区 - 帖子详情</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    :root {
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --secondary: #a855f7;
+      --accent: #ec4899;
+      --dark: #1f2937;
+      --light: #f9fafb;
+      --gray: #6b7280;
+      --card-shadow: 0 10px 30px -5px rgba(99, 102, 241, 0.1);
+      --hover-shadow: 0 20px 40px -5px rgba(99, 102, 241, 0.15);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      background: linear-gradient(135deg, #f0f4ff 0%, #f8faff 100%);
+      min-height: 100vh;
+      color: var(--dark);
+    }
+
+    /* 顶部导航 */
+    .header {
+      background: white;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+      padding: 16px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    /* 容器 */
+    .container {
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 0 20px 60px;
+    }
+
+    /* 帖子卡片 */
+    .post-card {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: var(--card-shadow);
+      margin-bottom: 25px;
+    }
+
+    /* 作者信息 */
+    .author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--primary-light);
+    }
+
+    .author-info h4 {
+      font-weight: 600;
+      font-size: 16px;
+      margin-bottom: 3px;
+    }
+
+    .author-info p {
+      font-size: 13px;
+      color: var(--gray);
+    }
+
+    /* 帖子标题 */
+    .post-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      line-height: 1.4;
+      color: #222;
+    }
+
+    /* 帖子内容 */
+    .post-content {
+      font-size: 16px;
+      line-height: 1.8;
+      color: #333;
+      margin-bottom: 25px;
+    }
+
+    /* 互动按钮 */
+    .post-actions {
+      display: flex;
+      gap: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--gray);
+      font-size: 15px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .action-btn:hover {
+      color: var(--primary);
+    }
+
+    .action-btn.active {
+      color: var(--primary);
+    }
+
+    /* 评论区域 */
+    .comment-section {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .comment-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 评论输入框 */
+    .comment-input-area {
+      margin-bottom: 30px;
+    }
+
+    .comment-input {
+      width: 100%;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 14px 18px;
+      outline: none;
+      resize: none;
+      height: 80px;
+      font-size: 15px;
+      margin-bottom: 10px;
+    }
+
+    .comment-submit {
+      margin-left: auto;
+      padding: 8px 20px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: block;
+    }
+
+    /* 评论列表 */
+    .comment-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .comment-item {
+      display: flex;
+      gap: 12px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #f5f5f5;
+    }
+
+    .comment-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .comment-content {
+      flex: 1;
+    }
+
+    .comment-name {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .comment-text {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #333;
+    }
+
+    .comment-time {
+      font-size: 12px;
+      color: var(--gray);
+      margin-top: 6px;
+    }
+
+    /* 空状态 */
+    .empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--gray);
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- 顶部导航 -->
+<div class="header">
+  <div class="nav">
+    <div class="logo">
+      <i class="fa fa-comments"></i> 轻奢社区
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <!-- 帖子内容 -->
+  <div class="post-card">
+    <!-- 作者信息 -->
+    <div class="author">
+      <img src="https://picsum.photos/200/200?1" class="avatar">
+      <div class="author-info">
+        <h4>辰星学长</h4>
+        <p>2025-12-20 15:30 · 前端技术</p>
+      </div>
+    </div>
+
+    <!-- 标题 -->
+    <h1 class="post-title">【实战教程】从零搭建一套完整的高端社区网站</h1>
+
+    <!-- 内容 -->
+    <div class="post-content">
+      大家好，今天给大家分享一套完整的社区网站实战教程，包含前台页面、用户中心、消息通知、AI 对话、私信聊天、后台管理等功能。<br><br>
+      整套页面采用现代轻奢风格，响应式布局，支持电脑和手机访问，界面高端大气，交互流畅。<br><br>
+      包含页面：<br>
+      • 社区首页<br>
+      • 帖子详情页<br>
+      • 个人中心<br>
+      • 消息通知<br>
+      • 私信聊天<br>
+      • AI 智能助手<br>
+      • 后台管理系统<br><br>
+      适合新手学习，也可以直接用于毕设或项目开发！
+    </div>
+
+    <!-- 点赞、收藏、评论 -->
+    <div class="post-actions">
+      <div class="action-btn active">
+        <i class="fa fa-heart"></i> 点赞 128
+      </div>
+      <div class="action-btn">
+        <i class="fa fa-star"></i> 收藏 46
+      </div>
+      <div class="action-btn">
+        <i class="fa fa-comment"></i> 评论 23
+      </div>
+    </div>
+  </div>
+
+  <!-- 评论区域 -->
+  <div class="comment-section">
+    <h3 class="comment-title">
+      <i class="fa fa-comments-o" style="color:var(--primary)"></i> 全部评论（23）
+    </h3>
+
+    <!-- 发表评论 -->
+    <div class="comment-input-area">
+      <textarea class="comment-input" placeholder="分享你的观点..."></textarea>
+      <button class="comment-submit">发表评论</button>
+    </div>
+
+    <!-- 评论列表 -->
+    <div class="comment-list">
+      <div class="comment-item">
+        <img src="https://picsum.photos/200/200?2" class="comment-avatar">
+        <div class="comment-content">
+          <div class="comment-name">前端大神</div>
+          <div class="comment-text">教程非常详细，感谢分享！已经跟着做了一半，效果超棒！</div>
+          <div class="comment-time">2025-12-20 15:40</div>
+        </div>
+      </div>
+
+      <div class="comment-item">
+        <img src="https://picsum.photos/200/200?3" class="comment-avatar">
+        <div class="comment-content">
+          <div class="comment-name">萌新小白</div>
+          <div class="comment-text">太厉害了！刚好在做毕业设计，这套可以直接用！</div>
+          <div class="comment-time">2025-12-20 16:10</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 点赞功能
+  const likeBtn = document.querySelector('.action-btn');
+  likeBtn.addEventListener('click', () => {
+    likeBtn.classList.toggle('active');
+    let num = likeBtn.textContent.trim().split(' ')[1];
+    likeBtn.innerHTML = likeBtn.classList.contains('active')
+            ? '<i class="fa fa-heart"></i> 点赞 129'
+            : '<i class="fa fa-heart"></i> 点赞 128';
+  });
+
+  // 发表评论
+  const submitBtn = document.querySelector('.comment-submit');
+  const commentInput = document.querySelector('.comment-input');
+  submitBtn.addEventListener('click', () => {
+    const text = commentInput.value.trim();
+    if(!text) {
+      alert('请输入评论内容');
+      return;
+    }
+    alert('评论发表成功！');
+    commentInput.value = '';
+  });
+</script>
+</body>
+</html>

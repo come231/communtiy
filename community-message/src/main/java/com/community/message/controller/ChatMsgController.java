@@ -37,9 +37,9 @@ public class ChatMsgController {
     }
 
     @PostMapping("/send")
-    @Operation(summary = "发送私信", description = "向指定用户发送私信")
+    @Operation(summary = "发送私信", description = "向指定用户发送私信；可传 sharePostId 分享帖子（对方可点击跳转）")
     public Result<Void> sendChat(@RequestBody SendChatRequest request) {
-        chatMsgService.sendChat(request.getToUserId(), request.getContent());
+        chatMsgService.sendChat(request.getToUserId(), request.getContent(), request.getSharePostId(), request.getSharePostTitle());
         return Result.success();
     }
 
@@ -59,7 +59,11 @@ public class ChatMsgController {
     @lombok.Data
     public static class SendChatRequest {
         private Long toUserId;
+        /** 普通文本；与 sharePostId 二选一或同时有（分享时可为空） */
         private String content;
+        /** 若填写则发送帖子分享卡片 */
+        private Long sharePostId;
+        private String sharePostTitle;
     }
 
     @GetMapping("/admin/list")

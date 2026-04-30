@@ -99,16 +99,17 @@ const typeFilter = ref<number | undefined>(undefined)
 // ✅ 修复加载逻辑
 async function loadNotices() {
   try {
-    const res = await adminApi.notices({
+    const res: any = await adminApi.notices({
       page: currentPage.value,
       size: 20,
       type: typeFilter.value
     })
 
-    // ✅ 正确结构
-    notices.value = res.records || []
-    total.value = res.total || 0
-    totalPages.value = Math.ceil(total.value / 20)
+    if (res && typeof res === 'object') {
+      notices.value = res.records || []
+      total.value = res.total || 0
+      totalPages.value = Math.ceil(total.value / 20)
+    }
   } catch (e) {
     console.error('加载通知失败', e)
     ElMessage.error('加载失败')

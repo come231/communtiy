@@ -4,6 +4,7 @@ import com.community.common.annotation.OperationLog;
 import com.community.common.result.PageResult;
 import com.community.common.result.Result;
 import com.community.common.util.ContextHolder;
+import com.community.interact.dto.CollectVO;
 import com.community.interact.entity.Collect;
 import com.community.interact.entity.CollectFolder;
 import com.community.interact.service.CollectFolderService;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/collects")
@@ -53,7 +55,7 @@ public class CollectController {
 
     @GetMapping
     @Operation(summary = "收藏列表", description = "获取当前用户的收藏列表")
-    public Result<PageResult<Collect>> listMyCollects(
+    public Result<PageResult<CollectVO>> listMyCollects(
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") int pageNum,
             @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") int pageSize,
             @Parameter(description = "文件夹ID") @RequestParam(required = false) Long folderId) {

@@ -3,21 +3,23 @@ package com.community.message.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.community.common.constant.RedisKeyConstant;
+import com.community.common.result.Result;
 import com.community.common.result.PageResult;
 import com.community.common.util.ContextHolder;
 import com.community.message.entity.ChatMsg;
 import com.community.message.feign.UserFeignClient;
 import com.community.message.mapper.ChatMsgMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -28,6 +30,7 @@ public class ChatMsgService {
     private final ChatMsgMapper chatMsgMapper;
     private final StringRedisTemplate redisTemplate;
     private final UserFeignClient userFeignClient;
+    private final ObjectMapper objectMapper;
     /**
      * 获取与某用户的聊天记录(分页)
      */
@@ -90,35 +93,68 @@ public class ChatMsgService {
 
                     Map<String, Object> map = new HashMap<>();
                     map.put("otherUserId", otherId);
-                    map.put("lastMessage", lastMsg != null ? lastMsg.getContent() : "");
+                    map.put("lastMessage", lastMsg != null ? formatLastMessagePreview(lastMsg) : "");
                     map.put("lastTime", lastMsg != null ? lastMsg.getCreateTime() : null);
                     map.put("unreadCount", unreadCount);
-                    map.put("nickName",userFeignClient.getUserInfo(otherId).getData().get("nickname"));
-                    map.put("avatar",userFeignClient.getUserInfo(otherId).getData().get("avatar"));
+                    // 每个联系人只请求一次用户信息，避免 N×2 次 Feign 调用
+                    Result<Map<String, Object>> ur = userFeignClient.getUserInfo(otherId);
+                    Map<String, Object> userData = (ur != null && ur.isSuccess()) ? ur.getData() : null;
+                    if (userData != null) {
+                        map.put("nickName", userData.get("nickname"));
+                        map.put("avatar", userData.get("avatar"));
+                    } else {
+                        map.put("nickName", "");
+                        map.put("avatar", "");
+                    }
                     return map;
                 }).collect(Collectors.toList());
     }
 
     /**
-     * 发送私信
+     * 发送私信（可选分享帖子：msg_type=2，content 为 JSON）
      */
-    public void sendChat(Long toUserId, String content) {
+    public void sendChat(Long toUserId, String content, Long sharePostId, String sharePostTitle) {
         Long fromUserId = ContextHolder.getUserId();
         if (toUserId == null) {
             throw new IllegalArgumentException("接收者ID不能为空");
         }
-        if (content == null || content.trim().isEmpty()) {
+        boolean share = sharePostId != null;
+        if (!share && (content == null || content.trim().isEmpty())) {
             throw new IllegalArgumentException("消息内容不能为空");
         }
         ChatMsg chatMsg = new ChatMsg();
         chatMsg.setFromUserId(fromUserId);
         chatMsg.setToUserId(toUserId);
-        chatMsg.setContent(content.trim());
+        if (share) {
+            try {
+                Map<String, Object> payload = new LinkedHashMap<>();
+                payload.put("type", "post_share");
+                payload.put("postId", sharePostId);
+                payload.put("title", sharePostTitle != null ? sharePostTitle : "");
+                chatMsg.setContent(objectMapper.writeValueAsString(payload));
+            } catch (JsonProcessingException e) {
+                throw new IllegalStateException("构建分享消息失败", e);
+            }
+        } else {
+            chatMsg.setContent(content.trim());
+        }
         chatMsgMapper.insert(chatMsg);
-        // 增加接收者的未读计数
         String key = RedisKeyConstant.USER_UNREAD_CHAT + toUserId + ":" + fromUserId;
         redisTemplate.opsForValue().increment(key);
-        log.info("发送私信成功: from={} to={}", fromUserId, toUserId);
+        log.info("发送私信成功: from={} to={} share={}", fromUserId, toUserId, share);
+    }
+
+    private String formatLastMessagePreview(ChatMsg msg) {
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> m = objectMapper.readValue(msg.getContent(), Map.class);
+            if ("post_share".equals(String.valueOf(m.get("type")))) {
+                Object title = m.get("title");
+                return "[分享帖子] " + (title != null ? title : "查看详情");
+            }
+        } catch (Exception ignored) {
+        }
+        return msg.getContent();
     }
 
     /**

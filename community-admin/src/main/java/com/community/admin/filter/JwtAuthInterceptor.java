@@ -46,7 +46,9 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
         // 3. 获取 Token
         String bearerToken = request.getHeader("Authorization");
+        log.debug("Authorization header: {}", bearerToken);
         if (!StringUtils.hasText(bearerToken) || !bearerToken.startsWith("Bearer ")) {
+            log.warn("Token缺失或格式错误: uri={}, header={}", path, bearerToken);
             setUnauthorized(response, "未登录，请先登录");
             return false;
         }
@@ -62,6 +64,7 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
 
             // 5. 过期校验
             if (jwtUtil.isTokenExpired(token)) {
+                log.warn("Token已过期: uri={}, token前缀={}...", path, token.substring(0, Math.min(20, token.length())));
                 setUnauthorized(response, "令牌已过期");
                 return false;
             }
@@ -97,13 +100,12 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
             // 8. 存入上下文
             AdminContextHolder.setAdminId(adminId);
             AdminContextHolder.setUsername(username);
-            System.out.println("访问令牌为："+token);
             return true;
 
         } catch (Exception e) {
-            log.error("JWT 认证失败: {}", e.getMessage());
+            log.error("JWT 认证失败: uri={}, error={}", path, e.getMessage(), e);
             AdminContextHolder.clear();
-            setUnauthorized(response, "认证失败");
+            setUnauthorized(response, "认证失败: " + e.getMessage());
             return false;
         }
     }

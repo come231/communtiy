@@ -50,4 +50,5 @@ public class RedisKeyConstant {
 
     // 热榜
     public static final String HOT_POST_LIST = "hot:post:list";
+    public static final String POST_INFO_PREFIX = "post:info:";
 }

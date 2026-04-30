@@ -4,17 +4,15 @@
 
 @layer base {
   :root {
-    --background: #F5F7FA;
-    --foreground: #303133;
-    --card: #FFFFFF;
-    --card-foreground: #303133;
-    --primary: #409EFF;
-    --primary-foreground: #FFFFFF;
-    --muted: #EBEEF5;
-    --muted-foreground: #909399;
-    --border: #DCDFE6;
-    --ring: #409EFF;
-    --radius: 0.5rem;
+    --background: #0b1220;
+    --foreground: #e2e8f0;
+    --card: rgba(30, 41, 59, 0.55);
+    --muted: #64748b;
+    --border: rgba(148, 163, 184, 0.12);
+    --primary: #6366f1;
+    --secondary: #8b5cf6;
+    --accent: #ec4899;
+    --radius: 0.75rem;
   }
 
   * {
@@ -24,7 +22,7 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: "Noto Sans SC", Inter, system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
@@ -32,10 +30,157 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+@layer components {
+  .text-gradient {
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    background-image: linear-gradient(
+      120deg,
+      #a5b4fc 0%,
+      #818cf8 35%,
+      #c4b5fd 65%,
+      #f472b6 100%
+    );
+  }
+
+  .glass {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.07) 0%,
+      rgba(255, 255, 255, 0.03) 100%
+    );
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 24px -4px rgba(15, 23, 42, 0.4);
+  }
+
+  .card-hover {
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px -12px rgba(99, 102, 241, 0.25),
+      0 0 0 1px rgba(99, 102, 241, 0.12);
+  }
+
+  .btn-gradient {
+    background-image: linear-gradient(120deg, #6366f1 0%, #7c3aed 50%, #a855f7 100%);
+    color: white;
+    font-weight: 600;
+    padding: 0.625rem 1.35rem;
+    border-radius: 9999px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 14px -3px rgba(99, 102, 241, 0.45);
+  }
+
+  .btn-gradient:hover {
+    box-shadow: 0 8px 24px -4px rgba(99, 102, 241, 0.5);
+    transform: translateY(-1px);
+  }
+
+  .btn-gradient:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  .navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    transition: padding 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease;
+  }
+
+  /* 用户端内容区：与私信页统一的浅色卡片与输入（嵌在深色壳内时使用） */
+  .user-surface-card {
+    @apply bg-white rounded-[20px] border border-[#e5e7eb] shadow-[0_10px_30px_-5px_rgba(99,102,241,0.15)];
+  }
+
+  .user-surface-input {
+    @apply rounded-xl border border-[#e5e7eb] bg-[#f9fafb] text-[#1f2937] placeholder:text-[#9ca3af] outline-none transition-colors;
+  }
+
+  .user-surface-input:focus {
+    @apply border-[#818cf8];
+  }
+
+  .user-tab-pill {
+    @apply px-4 py-2.5 rounded-xl text-sm font-medium border border-[#e5e7eb] bg-white text-[#6b7280] transition-all duration-200;
+  }
+
+  .user-tab-pill:hover {
+    @apply border-[#c7d2fe] text-[#6366f1] bg-[#f8faff];
+  }
+
+  .user-tab-pill-active {
+    @apply border-[#818cf8] text-[#6366f1] bg-[#eef2ff] shadow-sm;
+  }
+
+  .page-user-shell {
+    min-height: 100vh;
+    background-color: #0b1220;
+    background-image: radial-gradient(
+        ellipse 80% 50% at 50% -20%,
+        rgba(99, 102, 241, 0.2),
+        transparent
+      ),
+      radial-gradient(ellipse 55% 45% at 100% 40%, rgba(236, 72, 153, 0.1), transparent),
+      radial-gradient(ellipse 45% 35% at 0% 85%, rgba(139, 92, 246, 0.12), transparent);
+  }
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.35);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.55);
+}
+
+/* 可聚焦元素的可见焦点环（键盘导航） */
+:focus-visible {
+  outline: 2px solid rgba(129, 140, 248, 0.65);
+  outline-offset: 2px;
 }

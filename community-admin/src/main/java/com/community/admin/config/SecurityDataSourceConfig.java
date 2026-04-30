@@ -1,5 +1,7 @@
 package com.community.admin.config;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.config.GlobalConfig;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.annotation.MapperScan;
@@ -37,6 +39,12 @@ public class SecurityDataSourceConfig {
     public SqlSessionFactory securitySqlSessionFactory(@Qualifier("securityDataSource") DataSource dataSource) throws Exception {
         MybatisSqlSessionFactoryBean factory = new MybatisSqlSessionFactoryBean();
         factory.setDataSource(dataSource);
+        MybatisConfiguration configuration = new MybatisConfiguration();
+        configuration.setMapUnderscoreToCamelCase(true);
+        factory.setConfiguration(configuration);
+        GlobalConfig globalConfig = new GlobalConfig();
+        globalConfig.setDbConfig(new GlobalConfig.DbConfig());
+        factory.setGlobalConfig(globalConfig);
         return factory.getObject();
     }
 }

@@ -79,13 +79,30 @@ public class AiChatService {
     }
 
     public List<Map<String, Object>> getSessionList(Long userId) {
-        return aiChatMapper.selectMaps(
+        List<Map<String, Object>> sessions = aiChatMapper.selectMaps(
                 new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<AiChat>()
                         .select("session_id", "MAX(create_time) as latest_time")
                         .eq("user_id", userId)
                         .groupBy("session_id")
                         .orderByDesc("latest_time")
         );
+
+        for (Map<String, Object> session : sessions) {
+            String sessionId = (String) session.get("session_id");
+            LambdaQueryWrapper<AiChat> titleWrapper = new LambdaQueryWrapper<>();
+            titleWrapper.eq(AiChat::getSessionId, sessionId)
+                       .eq(AiChat::getRole, "user")
+                       .orderByAsc(AiChat::getCreateTime)
+                       .last("LIMIT 1");
+            AiChat firstUserMsg = aiChatMapper.selectOne(titleWrapper);
+            if (firstUserMsg != null) {
+                String title = firstUserMsg.getContent();
+                session.put("title", title.length() > 30 ? title.substring(0, 30) + "..." : title);
+            } else {
+                session.put("title", "新对话");
+            }
+        }
+        return sessions;
     }
 
     public boolean clearSession(String sessionId) {

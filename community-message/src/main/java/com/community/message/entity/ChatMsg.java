@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @TableName("chat_msg")
 public class ChatMsg {
 
-    @TableId(type = IdType.AUTO)
+    @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
     /**
@@ -25,13 +25,17 @@ public class ChatMsg {
      */
     private Long toUserId;
 
+    /**
+     * 1=text 2=image 3=video 4=file 5=mixed
+     */
+    private Integer msgType;
+
     private String content;
 
     /**
-     * 消息类型: 0-文本 1-图片
+     * 本条消息附件总字节
      */
-    @TableField("msg_type")
-    private Integer msgType;
+    private Long totalAttachmentBytes;
 
     @TableField("is_read")
     private Boolean isRead;
@@ -40,7 +44,8 @@ public class ChatMsg {
 
     public ChatMsg() {
         this.isRead = false;
-        this.msgType = 0;
+        this.msgType = 1;
+        this.totalAttachmentBytes = 0L;
         this.createTime = LocalDateTime.now();
     }
 }

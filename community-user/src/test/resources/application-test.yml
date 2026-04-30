@@ -1,0 +1,25 @@
+# =============================================================================
+# 测试 Profile：仅用于 src/test 下的切片测试（如 @MybatisPlusTest）
+# 与生产配置隔离，避免误连本机 Nacos / Redis / RabbitMQ
+# =============================================================================
+spring:
+  datasource:
+    url: jdbc:h2:mem:user_test;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;NON_KEYWORDS=USER
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-h2.sql
+
+# 与主工程保持一致的 MyBatis-Plus 全局策略（尤其是逻辑删除字段），避免测试与生产行为不一致
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: status
+      logic-delete-value: 0
+      logic-not-delete-value: 1

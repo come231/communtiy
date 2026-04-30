@@ -2,9 +2,11 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '../router'
 
+/** 统一请求：经 Vite 代理 /api → 网关（见 vite.config.ts） */
 const request = axios.create({
   baseURL: '/api',
-  withCredentials: true
+  withCredentials: true,
+  timeout: 30000,
 })
 
 // 请求拦截器
@@ -15,6 +17,9 @@ request.interceptors.request.use(
       const adminToken = localStorage.getItem('adminToken')
       if (adminToken) {
         config.headers.Authorization = `Bearer ${adminToken}`
+        console.log('[Request] Admin token attached:', url.substring(0, 50))
+      } else {
+        console.warn('[Request] Admin token missing for:', url.substring(0, 50))
       }
       const adminId = localStorage.getItem('adminId')
       if (adminId) {

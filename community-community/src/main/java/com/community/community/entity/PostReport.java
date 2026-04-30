@@ -13,6 +13,7 @@ public class PostReport {
     private Long postId;
     private Long userId;
     private String reason;
+    private String description;
     private Integer status;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

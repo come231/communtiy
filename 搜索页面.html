@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>轻奢社区 - 搜索</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --secondary: #a855f7;
+            --accent: #ec4899;
+            --dark: #1f2937;
+            --light: #f9fafb;
+            --gray: #6b7280;
+            --card-shadow: 0 10px 30px -5px rgba(99, 102, 241, 0.15);
+            --hover-shadow: 0 20px 40px -5px rgba(99, 102, 241, 0.25);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f4ff 0%, #f8faff 100%);
+            min-height: 100vh;
+            color: var(--dark);
+        }
+
+        /* 顶部导航 */
+        .header {
+            background: white;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            padding: 18px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        /* 搜索框区域 */
+        .search-section {
+            max-width: 800px;
+            margin: 50px auto 30px;
+            padding: 0 20px;
+        }
+
+        .search-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 18px 20px 18px 60px;
+            border-radius: 20px;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+        }
+
+        .search-input:focus {
+            box-shadow: var(--hover-shadow);
+            transform: translateY(-2px);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            color: var(--gray);
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 10px 20px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .search-btn:hover {
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        /* 容器 */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px 50px;
+        }
+
+        .search-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .search-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 35px;
+            flex-wrap: wrap;
+        }
+
+        .search-tab {
+            padding: 12px 25px;
+            background: white;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            color: var(--gray);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .search-tab.active {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .search-tab:hover:not(.active) {
+            background: #f0f4ff;
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        /* 内容面板 */
+        .result-panel {
+            display: none;
+            animation: fade 0.5s ease;
+        }
+
+        .result-panel.active {
+            display: block;
+        }
+
+        /* 帖子卡片 */
+        .post-item {
+            background: white;
+            border-radius: 18px;
+            padding: 22px;
+            margin-bottom: 18px;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .post-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .post-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+
+        .post-info {
+            color: var(--gray);
+            font-size: 13px;
+            display: flex;
+            gap: 15px;
+        }
+
+        /* 话题卡片 */
+        .topic-item {
+            background: white;
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: var(--transition);
+        }
+
+        .topic-item:hover {
+            transform: translateX(5px);
+        }
+
+        .topic-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .topic-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .topic-desc {
+            color: var(--gray);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        /* 用户卡片 */
+        .user-item {
+            background: white;
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            transition: var(--transition);
+        }
+
+        .user-item:hover {
+            transform: translateX(5px);
+        }
+
+        .user-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary-light);
+        }
+
+        .user-name {
+            font-weight: 700;
+            font-size: 17px;
+        }
+
+        .user-bio {
+            color: var(--gray);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .follow-btn {
+            margin-left: auto;
+            padding: 8px 18px;
+            border-radius: 12px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .follow-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .followed {
+            background: #e5e7eb !important;
+            color: var(--gray) !important;
+        }
+
+        /* 空状态 */
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray);
+        }
+
+        .empty i {
+            font-size: 50px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        /* 动画 */
+        @keyframes fade {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .search-tabs {
+                gap: 8px;
+            }
+            .search-tab {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- 顶部导航 -->
+<div class="header">
+    <div class="nav">
+        <div class="logo">
+            <i class="fa fa-comments"></i> 轻奢社区
+        </div>
+    </div>
+</div>
+
+<!-- 搜索区域 -->
+<div class="search-section">
+    <div class="search-wrapper">
+        <i class="fa fa-search search-icon"></i>
+        <input type="text" class="search-input" placeholder="搜索帖子、话题、用户..." value="前端">
+        <button class="search-btn">搜索</button>
+    </div>
+</div>
+
+<div class="container">
+    <h2 class="search-title">搜索结果：前端</h2>
+
+    <!-- 搜索分类 -->
+    <div class="search-tabs">
+        <div class="search-tab active" data-target="postResult">帖子</div>
+        <div class="search-tab" data-target="topicResult">话题</div>
+        <div class="search-tab" data-target="userResult">用户</div>
+    </div>
+
+    <!-- 帖子结果 -->
+    <div class="result-panel active" id="postResult">
+        <div class="post-item">
+            <div class="post-title">【实战】从零搭建高端社区个人中心页面</div>
+            <div class="post-info">
+                <span>辰星学长</span>
+                <span>发布于 2025-12-19</span>
+                <span>浏览 1268</span>
+            </div>
+        </div>
+        <div class="post-item">
+            <div class="post-title">CSS 高级动效技巧，让页面瞬间高端</div>
+            <div class="post-info">
+                <span>技术大神</span>
+                <span>发布于 2025-12-15</span>
+                <span>浏览 2680</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 话题结果 -->
+    <div class="result-panel" id="topicResult">
+        <div class="topic-item">
+            <div class="topic-icon"><i class="fa fa-fire"></i></div>
+            <div>
+                <div class="topic-name"># 前端开发实战</div>
+                <div class="topic-desc">3268 人订阅 · 今日 128 条新动态</div>
+            </div>
+        </div>
+        <div class="topic-item">
+            <div class="topic-icon"><i class="fa fa-lightbulb-o"></i></div>
+            <div>
+                <div class="topic-name"># CSS 特效大全</div>
+                <div class="topic-desc">1852 人订阅 · 今日 66 条新动态</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 用户结果 -->
+    <div class="result-panel" id="userResult">
+        <div class="user-item">
+            <img src="https://picsum.photos/200/200?1" class="user-avatar">
+            <div>
+                <div class="user-name">前端大神</div>
+                <div class="user-bio">专注前端开发 | 优质创作者</div>
+            </div>
+            <button class="follow-btn">关注</button>
+        </div>
+        <div class="user-item">
+            <img src="https://picsum.photos/200/200?2" class="user-avatar">
+            <div>
+                <div class="user-name">辰星学长</div>
+                <div class="user-bio">热爱分享，专注前端技术</div>
+            </div>
+            <button class="follow-btn followed">已关注</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // 搜索分类切换
+    const tabs = document.querySelectorAll('.search-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.result-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            const target = tab.getAttribute('data-target');
+            document.getElementById(target).classList.add('active');
+        });
+    });
+
+    // 关注按钮
+    const followBtns = document.querySelectorAll('.follow-btn');
+    followBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.classList.toggle('followed');
+            btn.textContent = btn.classList.contains('followed') ? '已关注' : '关注';
+        });
+    });
+
+    // 搜索按钮点击
+    const searchBtn = document.querySelector('.search-btn');
+    const searchInput = document.querySelector('.search-input');
+    searchBtn.addEventListener('click', () => {
+        const keyword = searchInput.value.trim();
+        if(!keyword) {
+            alert('请输入搜索内容');
+            return;
+        }
+        document.querySelector('.search-title').textContent = `搜索结果：${keyword}`;
+        // 实际项目中可在这里发送请求获取数据
+    });
+
+    // 回车搜索
+    searchInput.addEventListener('keyup', (e) => {
+        if(e.key === 'Enter') searchBtn.click();
+    });
+</script>
+
+</body>
+</html>

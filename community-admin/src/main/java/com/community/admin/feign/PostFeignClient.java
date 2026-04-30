@@ -14,7 +14,7 @@ import java.util.Map;
 public interface PostFeignClient {
 
     /**
-     * 获取帖子列表
+     * 获取帖子列表（前台）
      */
     @GetMapping("/posts/list")
     Result<PageResult<Map<String, Object>>> listPosts(
@@ -26,7 +26,23 @@ public interface PostFeignClient {
             @RequestParam(defaultValue = "10") Integer pageSize);
 
     /**
-     * 获取帖子详情
+     * 管理端：帖子列表（含待审、驳回等）
+     */
+    @GetMapping("/posts/admin/feed")
+    Result<PageResult<Map<String, Object>>> listPostsForAdmin(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize);
+
+    /**
+     * 管理端：帖子详情
+     */
+    @GetMapping("/posts/admin/post/{postId}")
+    Result<Map<String, Object>> getPostDetailForAdmin(@PathVariable Long postId);
+
+    /**
+     * 获取帖子详情（前台）
      */
     @GetMapping("/posts/{postId}")
     Result<Map<String, Object>> getPostDetail(@PathVariable Long postId);

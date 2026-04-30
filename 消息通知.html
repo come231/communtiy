@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>轻奢社区 - 消息通知</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --secondary: #a855f7;
+            --accent: #ec4899;
+            --dark: #1f2937;
+            --light: #f9fafb;
+            --gray: #6b7280;
+            --card-shadow: 0 10px 30px -5px rgba(99, 102, 241, 0.15);
+            --hover-shadow: 0 20px 40px -5px rgba(99, 102, 241, 0.25);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f4ff 0%, #f8faff 100%);
+            min-height: 100vh;
+            color: var(--dark);
+        }
+
+        /* 顶部导航 */
+        .header {
+            background: white;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        /* 容器 */
+        .container {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 0 20px 60px;
+        }
+
+        .page-title {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-desc {
+            color: var(--gray);
+            margin-bottom: 25px;
+        }
+
+        /* 顶部操作栏 */
+        .msg-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .read-all-btn {
+            padding: 8px 16px;
+            background: white;
+            color: var(--primary);
+            border: 1px solid var(--primary-light);
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .read-all-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* 消息分类 */
+        .msg-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .msg-tab {
+            padding: 10px 18px;
+            background: white;
+            border-radius: 12px;
+            font-weight: 600;
+            color: var(--gray);
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .msg-tab.active {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+        }
+
+        .msg-tab:hover:not(.active) {
+            background: #f0f4ff;
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 18px;
+            height: 18px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 消息列表 */
+        .msg-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* 消息卡片 */
+        .msg-item {
+            background: white;
+            border-radius: 16px;
+            padding: 18px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .msg-item:hover {
+            transform: translateX(4px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .msg-item.unread {
+            background: #eef2ff;
+            border-left: 4px solid var(--primary);
+        }
+
+        .msg-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+            flex-shrink: 0;
+        }
+
+        .msg-content {
+            flex: 1;
+        }
+
+        .msg-title {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 5px;
+            color: var(--dark);
+        }
+
+        .msg-text {
+            font-size: 14px;
+            color: var(--gray);
+            line-height: 1.5;
+        }
+
+        .msg-time {
+            font-size: 12px;
+            color: var(--gray);
+            margin-top: 6px;
+        }
+
+        .msg-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary-light), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        /* 内容面板 */
+        .msg-panel {
+            display: none;
+            animation: fade 0.4s ease;
+        }
+
+        .msg-panel.active {
+            display: block;
+        }
+
+        /* 空状态 */
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray);
+        }
+
+        .empty i {
+            font-size: 50px;
+            margin-bottom: 15px;
+            opacity: 0.4;
+        }
+
+        /* 动画 */
+        @keyframes fade {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .msg-tabs {
+                gap: 8px;
+            }
+            .msg-tab {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- 顶部导航 -->
+<div class="header">
+    <div class="nav">
+        <div class="logo">
+            <i class="fa fa-bell"></i> 消息通知
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <h2 class="page-title">
+        <i class="fa fa-bell-o" style="color:var(--primary)"></i> 消息中心
+    </h2>
+    <p class="page-desc">查看你的互动、通知和私信动态</p>
+
+    <!-- 操作栏 -->
+    <div class="msg-toolbar">
+        <div></div>
+        <button class="read-all-btn" id="readAll">
+            <i class="fa fa-check-circle"></i> 全部标为已读
+        </button>
+    </div>
+
+    <!-- 消息分类 -->
+    <div class="msg-tabs">
+        <div class="msg-tab active" data-target="allMsg">全部消息</div>
+        <div class="msg-tab" data-target="systemMsg">系统通知<span class="badge">3</span></div>
+        <div class="msg-tab" data-target="commentMsg">评论我的</div>
+        <div class="msg-tab" data-target="likeMsg">点赞我的</div>
+        <div class="msg-tab" data-target="followMsg">关注我的</div>
+        <div class="msg-tab" data-target="atMeMsg">@我的</div>
+    </div>
+
+    <!-- 全部消息 -->
+    <div class="msg-panel active" id="allMsg">
+        <div class="msg-list">
+            <div class="msg-item unread">
+                <div class="msg-icon"><i class="fa fa-comment"></i></div>
+                <div class="msg-content">
+                    <div class="msg-title">萌新小白 评论了你的帖子</div>
+                    <div class="msg-text">大佬写得太赞了！学习了！</div>
+                    <div class="msg-time">今天 10:25</div>
+                </div>
+            </div>
+            <div class="msg-item unread">
+                <div class="msg-icon"><i class="fa fa-heart"></i></div>
+                <div class="msg-content">
+                    <div class="msg-title">技术大神 点赞了你的评论</div>
+                    <div class="msg-text">你的观点非常专业，值得学习！</div>
+                    <div class="msg-time">今天 09:10</div>
+                </div>
+            </div>
+            <div class="msg-item unread">
+                <div class="msg-icon"><i class="fa fa-user-plus"></i></div>
+                <div class="msg-content">
+                    <div class="msg-title">前端爱好者 关注了你</div>
+                    <div class="msg-text">希望能向你多多学习前端技术</div>
+                    <div class="msg-time">昨天 18:30</div>
+                </div>
+            </div>
+            <div class="msg-item">
+                <div class="msg-icon"><i class="fa fa-bullhorn"></i></div>
+                <div class="msg-content">
+                    <div class="msg-title">系统通知：恭喜成为优质创作者</div>
+                    <div class="msg-text">你的内容质量优秀，已为你开通创作者权益</div>
+                    <div class="msg-time">3天前</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统消息 -->
+    <div class="msg-panel" id="systemMsg">
+        <div class="msg-list">
+            <div class="msg-item unread">
+                <div class="msg-icon"><i class="fa fa-cog"></i></div>
+                <div class="msg-content">
+                    <div class="msg-title">系统维护公告</div>
+                    <div class="msg-text">系统将于凌晨2点-4点进行升级维护，请合理安排时间</div>
+                    <div class="msg-time">今天 08:00</div>
+                </div>
+            </div>
+            <div class="msg-item unread">
+                <div class="msg-icon"><i class="fa fa-gift"></i></div>
+                <div class="msg-content">
+                    <div class="msg-title">签到奖励</div>
+                    <div class="msg-text">连续签到7天，获得积分大礼包 x1</div>
+                    <div class="msg-time">昨天 12:15</div>
+                </div>
+            </div>
+            <div class="msg-item unread">
+                <div class="msg-icon"><i class="fa fa-shield"></i></div>
+                <div class="msg-content">
+                    <div class="msg-title">账号安全提醒</div>
+                    <div class="msg-text">你的账号在新设备登录，如非本人操作请及时修改密码</div>
+                    <div class="msg-time">3天前</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 评论我的 -->
+    <div class="msg-panel" id="commentMsg">
+        <div class="empty">
+            <i class="fa fa-comment-o"></i>
+            <p>暂无评论消息</p>
+        </div>
+    </div>
+
+    <!-- 点赞我的 -->
+    <div class="msg-panel" id="likeMsg">
+        <div class="empty">
+            <i class="fa fa-heart-o"></i>
+            <p>暂无点赞消息</p>
+        </div>
+    </div>
+
+    <!-- 关注我的 -->
+    <div class="msg-panel" id="followMsg">
+        <div class="empty">
+            <i class="fa fa-user-o"></i>
+            <p>暂无关注消息</p>
+        </div>
+    </div>
+
+    <!-- @我的 -->
+    <div class="msg-panel" id="atMeMsg">
+        <div class="empty">
+            <i class="fa fa-at"></i>
+            <p>暂无@我的消息</p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // 分类切换
+    const tabs = document.querySelectorAll('.msg-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.msg-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            const target = tab.getAttribute('data-target');
+            document.getElementById(target).classList.add('active');
+        });
+    });
+
+    // 全部标为已读
+    document.getElementById('readAll').addEventListener('click', () => {
+        document.querySelectorAll('.msg-item.unread').forEach(item => {
+            item.classList.remove('unread');
+        });
+        document.querySelectorAll('.badge').forEach(b => b.remove());
+        alert('已将所有消息标为已读！');
+    });
+
+    // 点击消息标为已读
+    document.querySelectorAll('.msg-item').forEach(item => {
+        item.addEventListener('click', () => {
+            item.classList.remove('unread');
+        });
+    });
+</script>
+
+</body>
+</html>

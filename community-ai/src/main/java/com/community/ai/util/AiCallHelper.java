@@ -18,13 +18,13 @@ import java.time.Duration;
 @Slf4j
 public class AiCallHelper {
 
-    @Value("${spring.ai.openai.api-key:df28fd2c06ca400f8f2af93901dc16cb.lDfaiHsjXkIKCVaY}")
+    @Value("${spring.ai.openai.api-key}")
     private String apiKey;
 
-    @Value("${spring.ai.openai.base-url:https://open.bigmodel.cn/api/paas/v4}")
+    @Value("${spring.ai.openai.base-url}")
     private String baseUrl;
 
-    @Value("${spring.ai.openai.chat.options.model:glm-4-flash}")
+    @Value("${spring.ai.openai.chat.options.model}")
     private String model;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -37,13 +37,24 @@ public class AiCallHelper {
      * 发送消息到AI
      */
     public String call(String prompt) {
-        return callWithSystem(null, prompt);
+        return callWithSystem(null, prompt, 0.7);
     }
 
     /**
      * 发送带系统提示的消息到AI
      */
     public String callWithSystem(String systemPrompt, String userMsg) {
+        return callWithSystem(systemPrompt, userMsg, 0.7);
+    }
+
+    /**
+     * 内容审核专用：低温度，减少偏离《平台审核规则》的随意发挥。
+     */
+    public String callForContentReview(String systemPrompt, String userMsg) {
+        return callWithSystem(systemPrompt, userMsg, 0.25);
+    }
+
+    private String callWithSystem(String systemPrompt, String userMsg, double temperature) {
         if (apiKey == null || apiKey.isEmpty()) {
             throw new RuntimeException("AI功能未启用：未配置 API Key，请在 application.yml 中配置 spring.ai.openai.api-key");
         }
@@ -57,7 +68,7 @@ public class AiCallHelper {
                 requestBody.append("{\"role\":\"system\",\"content\":\"").append(escapeJson(systemPrompt)).append("\"},");
             }
             requestBody.append("{\"role\":\"user\",\"content\":\"").append(escapeJson(userMsg)).append("\"}");
-            requestBody.append("],\"temperature\":0.7}");
+            requestBody.append("],\"temperature\":").append(temperature).append("}");
             
             // 发送请求
             HttpRequest request = HttpRequest.newBuilder()

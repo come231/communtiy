@@ -1,6 +1,7 @@
 package com.community.community.controller;
 
 import com.community.common.annotation.OperationLog;
+import com.community.common.result.PageResult;
 import com.community.common.result.Result;
 import com.community.common.util.ContextHolder;
 import com.community.community.entity.Topic;
@@ -31,6 +32,15 @@ public class TopicController {
     @Operation(summary = "热门话题", description = "获取热门话题列表")
     public Result<List<Topic>> listHotTopics() {
         return Result.success(topicService.listHotTopics());
+    }
+
+    @GetMapping("/keyword-search")
+    @Operation(summary = "搜索话题", description = "按名称或简介关键词分页搜索话题")
+    public Result<PageResult<Topic>> searchTopics(
+            @Parameter(description = "关键词") @RequestParam String keyword,
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer pageNum,
+            @Parameter(description = "每页条数") @RequestParam(defaultValue = "10") Integer pageSize) {
+        return Result.success(topicService.searchTopics(keyword, pageNum, pageSize));
     }
 
     @GetMapping("/{topicId}")

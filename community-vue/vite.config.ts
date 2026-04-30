@@ -10,6 +10,23 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        /** 按依赖拆分 vendor，避免单文件过大；echarts 按需动态 import 时不强制单独 chunk，防止空包 */
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('element-plus') || id.includes('@element-plus')) return 'element-plus'
+            if (id.includes('echarts') || id.includes('vue-echarts')) return 'echarts'
+            if (id.includes('vue-router') || id.includes('pinia') || /node_modules[\\/]vue[\\/]/.test(id)) {
+              return 'vue-vendor'
+            }
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 700,
+  },
   server: {
     host: '0.0.0.0',
     allowedHosts: true,

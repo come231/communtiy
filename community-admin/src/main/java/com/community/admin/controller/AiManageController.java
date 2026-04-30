@@ -1,6 +1,7 @@
 package com.community.admin.controller;
 
 import com.community.admin.feign.AiFeignClient;
+import com.community.common.dto.PostReviewRuleDTO;
 import com.community.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -55,6 +57,46 @@ public class AiManageController {
             return aiFeignClient.getChatSessions(page, size);
         } catch (Exception e) {
             return Result.error("获取AI对话记录失败: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/post-review-rules")
+    @Operation(summary = "帖子AI审核规则", description = "列表")
+    public Result<List<PostReviewRuleDTO>> listPostReviewRules() {
+        try {
+            return aiFeignClient.listPostReviewRules();
+        } catch (Exception e) {
+            return Result.error("获取审核规则失败: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/post-review-rules")
+    @Operation(summary = "新增帖子AI审核规则", description = "新增规则条目")
+    public Result<PostReviewRuleDTO> createPostReviewRule(@RequestBody PostReviewRuleDTO dto) {
+        try {
+            return aiFeignClient.createPostReviewRule(dto);
+        } catch (Exception e) {
+            return Result.error("新增审核规则失败: " + e.getMessage());
+        }
+    }
+
+    @PutMapping("/post-review-rules/{id}")
+    @Operation(summary = "更新帖子AI审核规则", description = "更新规则")
+    public Result<PostReviewRuleDTO> updatePostReviewRule(@PathVariable Long id, @RequestBody PostReviewRuleDTO dto) {
+        try {
+            return aiFeignClient.updatePostReviewRule(id, dto);
+        } catch (Exception e) {
+            return Result.error("更新审核规则失败: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/post-review-rules/{id}")
+    @Operation(summary = "删除帖子AI审核规则", description = "删除规则")
+    public Result<Void> deletePostReviewRule(@PathVariable Long id) {
+        try {
+            return aiFeignClient.deletePostReviewRule(id);
+        } catch (Exception e) {
+            return Result.error("删除审核规则失败: " + e.getMessage());
         }
     }
 

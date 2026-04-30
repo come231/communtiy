@@ -72,6 +72,95 @@
       </div>
     </div>
 
+    <!-- 帖子 AI 审核规则 -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-gray-800">帖子 AI 审核规则</h3>
+            <p class="text-xs text-gray-500 mt-1 max-w-3xl leading-relaxed">
+              启用项会按排序进入 AI 提示词（与 system 指令、低温度一起强制逐条对照）。
+              若当前无任何启用规则，服务端会自动使用与 <code class="text-gray-600">post_review_rule.sql</code> 一致的内置默认规则集，避免模型空规则乱判。
+              分档：<span class="text-gray-700">0%</span> 正常；
+              <span class="text-gray-700">大于 0% 且 ≤30%</span> 转人工；
+              <span class="text-gray-700">&gt;30%</span> 拦截。
+            </p>
+          </div>
+        </div>
+        <button type="button" @click="openRuleDialog()" class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-blue-600 shrink-0">新增规则</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm min-w-[800px]">
+          <thead class="bg-gray-50 border-b text-left text-xs text-gray-500 uppercase tracking-wider">
+            <tr>
+              <th class="px-5 py-3.5 w-14">排序</th>
+              <th class="px-5 py-3.5 w-40">名称</th>
+              <th class="px-5 py-3.5">规则正文</th>
+              <th class="px-5 py-3.5 w-24">状态</th>
+              <th class="px-5 py-3.5 w-36">更新时间</th>
+              <th class="px-5 py-3.5 w-28">操作</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-50">
+            <tr v-for="row in reviewRules" :key="row.id" class="hover:bg-gray-50/50 align-top">
+              <td class="px-5 py-3 text-gray-600">{{ row.sortOrder ?? 0 }}</td>
+              <td class="px-5 py-3 text-gray-800">{{ row.ruleName || '—' }}</td>
+              <td class="px-5 py-3 text-gray-600">
+                <p class="line-clamp-2" :title="row.ruleText">{{ row.ruleText || '—' }}</p>
+              </td>
+              <td class="px-5 py-3">
+                <span :class="['text-xs px-2 py-1 rounded-full', row.status === 1 ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400']">
+                  {{ row.status === 1 ? '启用' : '禁用' }}
+                </span>
+              </td>
+              <td class="px-5 py-3 text-gray-400 text-xs whitespace-nowrap">{{ formatTime(row.updateTime ?? row.createTime ?? '') }}</td>
+              <td class="px-5 py-3">
+                <button type="button" @click="openRuleDialog(row)" class="text-primary hover:text-blue-700 text-xs font-medium mr-3">编辑</button>
+                <button type="button" @click="handleDeleteRule(row)" class="text-red-500 hover:text-red-700 text-xs font-medium">删除</button>
+              </td>
+            </tr>
+            <tr v-if="reviewRules.length === 0">
+              <td colspan="6" class="px-5 py-10 text-center text-gray-400">暂无规则，请点击「新增规则」或执行数据库初始化脚本导入模板</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <el-dialog v-model="ruleDialogVisible" :title="ruleEditId != null ? '编辑审核规则' : '新增审核规则'" width="640px" destroy-on-close @closed="resetRuleForm">
+      <el-form :model="ruleForm" label-position="top">
+        <el-form-item label="规则名称（可选）">
+          <el-input v-model="ruleForm.ruleName" placeholder="展示用，如：色情低俗" maxlength="200" show-word-limit />
+        </el-form-item>
+        <el-form-item label="规则正文" required>
+          <el-input
+            v-model="ruleForm.ruleText"
+            type="textarea"
+            :rows="8"
+            placeholder="写入 AI 提示词，描述禁止发布或需重点审核的内容类型与边界"
+          />
+        </el-form-item>
+        <div class="grid grid-cols-2 gap-4">
+          <el-form-item label="排序（越小越靠前）">
+            <el-input-number v-model="ruleForm.sortOrder" :min="0" :max="999999" class="w-full" />
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="ruleForm.status" class="w-full">
+              <el-option :value="1" label="启用" />
+              <el-option :value="0" label="禁用" />
+            </el-select>
+          </el-form-item>
+        </div>
+      </el-form>
+      <template #footer>
+        <el-button @click="ruleDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="ruleSaving" @click="saveRule">保存</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 对话记录 -->
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -116,6 +205,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { adminApi } from '@/api'
+import type { PostReviewRule } from '@/types'
 
 // 统计
 const stats = reactive<Record<string, number>>({})
@@ -128,6 +218,92 @@ const aiConfig = reactive({
   temperature: 0.7,
 })
 const configSaving = ref(false)
+
+// 帖子 AI 审核规则
+const reviewRules = ref<PostReviewRule[]>([])
+const ruleDialogVisible = ref(false)
+const ruleEditId = ref<number | null>(null)
+const ruleSaving = ref(false)
+const ruleForm = reactive<PostReviewRule>({
+  ruleName: '',
+  ruleText: '',
+  sortOrder: 0,
+  status: 1,
+})
+
+function resetRuleForm() {
+  ruleEditId.value = null
+  ruleForm.ruleName = ''
+  ruleForm.ruleText = ''
+  ruleForm.sortOrder = 0
+  ruleForm.status = 1
+}
+
+async function loadReviewRules() {
+  try {
+    const list = await adminApi.postReviewRules()
+    reviewRules.value = Array.isArray(list) ? list : []
+  } catch {
+    reviewRules.value = []
+  }
+}
+
+function openRuleDialog(row?: PostReviewRule) {
+  if (row?.id != null) {
+    ruleEditId.value = row.id
+    ruleForm.ruleName = row.ruleName || ''
+    ruleForm.ruleText = row.ruleText || ''
+    ruleForm.sortOrder = row.sortOrder ?? 0
+    ruleForm.status = row.status ?? 1
+  } else {
+    resetRuleForm()
+  }
+  ruleDialogVisible.value = true
+}
+
+async function saveRule() {
+  const text = (ruleForm.ruleText || '').trim()
+  if (!text) {
+    ElMessage.warning('请填写规则正文')
+    return
+  }
+  ruleSaving.value = true
+  try {
+    const payload: Partial<PostReviewRule> = {
+      ruleName: (ruleForm.ruleName || '').trim() || undefined,
+      ruleText: text,
+      sortOrder: ruleForm.sortOrder ?? 0,
+      status: ruleForm.status ?? 1,
+    }
+    if (ruleEditId.value != null) {
+      await adminApi.updatePostReviewRule(ruleEditId.value, payload)
+      ElMessage.success('已更新规则')
+    } else {
+      await adminApi.createPostReviewRule(payload)
+      ElMessage.success('已新增规则')
+    }
+    ruleDialogVisible.value = false
+    await loadReviewRules()
+  } catch {
+    // 全局拦截器已提示
+  } finally {
+    ruleSaving.value = false
+  }
+}
+
+async function handleDeleteRule(row: PostReviewRule) {
+  if (row.id == null) return
+  try {
+    await ElMessageBox.confirm('确定删除该条审核规则？删除后立即从 AI 提示词中移除。', '确认删除', { type: 'warning' })
+    await adminApi.deletePostReviewRule(row.id)
+    ElMessage.success('已删除')
+    await loadReviewRules()
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      /* message from interceptor */
+    }
+  }
+}
 
 // 对话记录
 const records = ref<any[]>([])
@@ -215,6 +391,7 @@ function formatTime(time: string): string {
 onMounted(() => {
   loadStats()
   loadAiConfig()
+  loadReviewRules()
   loadRecords()
 })
 </script>

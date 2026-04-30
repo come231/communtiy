@@ -1,9 +1,0 @@
-package com.community.admin.mapper.admin;
-
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.community.admin.entity.SysConfig;
-import org.apache.ibatis.annotations.Mapper;
-
-@Mapper
-public interface SysConfigMapper extends BaseMapper<SysConfig> {
-}

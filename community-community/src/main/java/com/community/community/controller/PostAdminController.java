@@ -1,6 +1,8 @@
 package com.community.community.controller;
 
+import com.community.common.result.PageResult;
 import com.community.common.result.Result;
+import com.community.community.dto.PostVO;
 import com.community.community.entity.Comment;
 import com.community.community.entity.Post;
 import com.community.community.mapper.CommentMapper;
@@ -29,6 +31,22 @@ public class PostAdminController {
     private final PostService postService;
     private final PostMapper postMapper;
     private final CommentMapper commentMapper;
+
+    @GetMapping("/feed")
+    @Operation(summary = "管理端帖子列表", description = "按状态、关键词筛选（服务间/管理端）")
+    public Result<PageResult<PostVO>> listForAdmin(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(postService.listPostsForAdmin(keyword, status, pageNum, pageSize));
+    }
+
+    @GetMapping("/post/{postId}")
+    @Operation(summary = "管理端帖子详情", description = "可见待审/驳回等非公开帖")
+    public Result<PostVO> getForAdmin(@PathVariable Long postId) {
+        return Result.success(postService.getPostDetailForAdmin(postId));
+    }
 
     /**
      * 审核帖子

@@ -20,12 +20,17 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   ai:
     openai:
-      api-key: ${AI_API_KEY:df28fd2c06ca400f8f2af93901dc16cb.lDfaiHsjXkIKCVaY}
+      api-key: ${AI_API_KEY:158b871aaca143a2ae0fb3d0ceb00f08.ZHX1xrtftdUKDwct}
       base-url: ${AI_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
       chat:
         options:
           model: ${AI_MODEL:glm-4-flash}
           temperature: 0.7
+    # 语义向量Embedding配置（人机回环数据飞轮）
+    embedding:
+      enabled: false                          # 是否调用OpenAI Embedding API（需要额外费用）
+      model: text-embedding-3-small          # 1536维，性价比高
+      base-url: ${AI_BASE_URL:https://api.openai.com}
   data:
     redis:
       host: localhost
@@ -35,6 +40,15 @@ spring:
     port: 5672
     username: guest
     password: guest
+
+# 内容审核语义向量配置（人机回环）
+content:
+  audit:
+    vector:
+      enabled: true                           # 启用语义向量检测（内存版无需外部依赖）
+      threshold: 0.82                         # 相似度阈值
+      top-k: 3                                # 返回最相似样本数
+      min-score-for-block: 0.90              # 极高相似度直接拦截阈值
 
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml

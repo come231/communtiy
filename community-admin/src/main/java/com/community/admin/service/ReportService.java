@@ -65,8 +65,9 @@ public class ReportService {
             throw new RuntimeException("该举报已处理");
         }
 
+        int newStatus = dto.getStatus() != null ? dto.getStatus() : 1;
         String updateSql = "UPDATE report SET status = ?, handler_id = ?, handle_result = ?, handle_time = NOW() WHERE id = ?";
-        int updated = jdbcTemplate.update(updateSql, 1, handlerId, dto.getHandleResult(), dto.getReportId());
+        int updated = jdbcTemplate.update(updateSql, newStatus, handlerId, dto.getHandleResult(), dto.getReportId());
 
         return updated > 0;
     }

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>轻奢社区 - 全部板块</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    :root {
+      --primary: #6366f1;
+      --primary-light: #818cf8;
+      --secondary: #a855f7;
+      --accent: #ec4899;
+      --dark: #1f2937;
+      --light: #f9fafb;
+      --gray: #6b7280;
+      --card-shadow: 0 10px 30px -5px rgba(99, 102, 241, 0.15);
+      --hover-shadow: 0 20px 40px -5px rgba(99, 102, 241, 0.25);
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      background: linear-gradient(135deg, #f0f4ff 0%, #f8faff 100%);
+      min-height: 100vh;
+      color: var(--dark);
+    }
+
+    /* 顶部导航 */
+    .header {
+      background: white;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+      padding: 18px 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search-box {
+      background: #f3f4f6;
+      border-radius: 12px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 320px;
+    }
+
+    .search-box input {
+      border: none;
+      background: transparent;
+      outline: none;
+      flex: 1;
+      font-size: 14px;
+    }
+
+    /* 容器 */
+    .container {
+      max-width: 1100px;
+      margin: 30px auto;
+      padding: 0 20px;
+    }
+
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .page-desc {
+      color: var(--gray);
+      margin-bottom: 30px;
+    }
+
+    /* 分类标签 */
+    .category-tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 35px;
+      flex-wrap: wrap;
+    }
+
+    .category-tab {
+      padding: 10px 20px;
+      background: white;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: var(--transition);
+      font-weight: 600;
+      color: var(--gray);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+    }
+
+    .category-tab.active {
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      color: white;
+    }
+
+    .category-tab:hover:not(.active) {
+      background: #f0f4ff;
+      color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    /* 板块网格 */
+    .plate-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 25px;
+    }
+
+    /* 板块卡片 */
+    .plate-card {
+      background: white;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .plate-card:hover {
+      transform: translateY(-8px);
+      box-shadow: var(--hover-shadow);
+    }
+
+    .plate-cover {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+    }
+
+    .plate-body {
+      padding: 20px;
+    }
+
+    .plate-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .plate-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--dark);
+    }
+
+    .plate-desc {
+      color: var(--gray);
+      font-size: 13px;
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+
+    .plate-stats {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+      font-size: 13px;
+      color: var(--gray);
+    }
+
+    .join-btn {
+      width: 100%;
+      padding: 10px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .join-btn:hover {
+      transform: scale(1.03);
+    }
+
+    .joined {
+      background: #e5e7eb !important;
+      color: var(--gray) !important;
+    }
+
+    /* 推荐板块 */
+    .recommend {
+      background: white;
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 30px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .recommend-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hot-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .hot-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      border-radius: 10px;
+      transition: var(--transition);
+    }
+
+    .hot-item:hover {
+      background: #f9fafb;
+    }
+
+    .hot-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      object-fit: cover;
+    }
+
+    .hot-info {
+      flex: 1;
+    }
+
+    .hot-name {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .hot-count {
+      font-size: 12px;
+      color: var(--gray);
+      margin-top: 3px;
+    }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .plate-grid {
+        grid-template-columns: 1fr;
+      }
+      .search-box {
+        width: 220px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- 顶部导航 -->
+<div class="header">
+  <div class="nav">
+    <div class="logo">
+      <i class="fa fa-comments"></i> 轻奢社区
+    </div>
+    <div class="search-box">
+      <i class="fa fa-search"></i>
+      <input type="text" placeholder="搜索板块...">
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <h2 class="page-title">
+    <i class="fa fa-th-large" style="color:var(--primary)"></i> 全部板块
+  </h2>
+  <p class="page-desc">找到你感兴趣的圈子，加入一起交流</p>
+
+  <!-- 推荐板块 -->
+  <div class="recommend">
+    <div class="recommend-title">
+      <i class="fa fa-fire" style="color:var(--accent)"></i> 热门推荐
+    </div>
+    <div class="hot-list">
+      <div class="hot-item">
+        <img src="https://picsum.photos/100/100?1" class="hot-avatar">
+        <div class="hot-info">
+          <div class="hot-name">前端开发交流圈</div>
+          <div class="hot-count">1280 人 · 今日 32 帖</div>
+        </div>
+      </div>
+      <div class="hot-item">
+        <img src="https://picsum.photos/100/100?2" class="hot-avatar">
+        <div class="hot-info">
+          <div class="hot-name">技术分享大本营</div>
+          <div class="hot-count">856 人 · 今日 18 帖</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分类导航 -->
+  <div class="category-tabs">
+    <div class="category-tab active">全部板块</div>
+    <div class="category-tab">技术开发</div>
+    <div class="category-tab">学习交流</div>
+    <div class="category-tab">资源分享</div>
+    <div class="category-tab">娱乐休闲</div>
+  </div>
+
+  <!-- 板块列表 -->
+  <div class="plate-grid">
+
+    <!-- 板块1 -->
+    <div class="plate-card">
+      <img src="https://picsum.photos/600/200?1" class="plate-cover">
+      <div class="plate-body">
+        <div class="plate-header">
+          <div class="plate-name">前端开发交流圈</div>
+        </div>
+        <div class="plate-desc">专注HTML/CSS/JS/前端框架技术交流与实战</div>
+        <div class="plate-stats">
+          <span><i class="fa fa-users"></i> 1280 成员</span>
+          <span><i class="fa fa-file-text"></i> 3682 帖子</span>
+        </div>
+        <button class="join-btn">加入板块</button>
+      </div>
+    </div>
+
+    <!-- 板块2 -->
+    <div class="plate-card">
+      <img src="https://picsum.photos/600/200?2" class="plate-cover">
+      <div class="plate-body">
+        <div class="plate-header">
+          <div class="plate-name">后端技术研讨</div>
+        </div>
+        <div class="plate-desc">Java/Python/Go/数据库/服务端开发交流</div>
+        <div class="plate-stats">
+          <span><i class="fa fa-users"></i> 956 成员</span>
+          <span><i class="fa fa-file-text"></i> 2410 帖子</span>
+        </div>
+        <button class="join-btn">加入板块</button>
+      </div>
+    </div>
+
+    <!-- 板块3 -->
+    <div class="plate-card">
+      <img src="https://picsum.photos/600/200?3" class="plate-cover">
+      <div class="plate-body">
+        <div class="plate-header">
+          <div class="plate-name">设计美学馆</div>
+        </div>
+        <div class="plate-desc">UI/UX设计、平面设计、创意审美交流</div>
+        <div class="plate-stats">
+          <span><i class="fa fa-users"></i> 742 成员</span>
+          <span><i class="fa fa-file-text"></i> 1835 帖子</span>
+        </div>
+        <button class="join-btn joined">已加入</button>
+      </div>
+    </div>
+
+    <!-- 板块4 -->
+    <div class="plate-card">
+      <img src="https://picsum.photos/600/200?4" class="plate-cover">
+      <div class="plate-body">
+        <div class="plate-header">
+          <div class="plate-name">学习资源库</div>
+        </div>
+        <div class="plate-desc">各类学习教程、资料、书籍、实战项目分享</div>
+        <div class="plate-stats">
+          <span><i class="fa fa-users"></i> 1560 成员</span>
+          <span><i class="fa fa-file-text"></i> 4210 帖子</span>
+        </div>
+        <button class="join-btn">加入板块</button>
+      </div>
+    </div>
+
+    <!-- 板块5 -->
+    <div class="plate-card">
+      <img src="https://picsum.photos/600/200?5" class="plate-cover">
+      <div class="plate-body">
+        <div class="plate-header">
+          <div class="plate-name">职场经验谈</div>
+        </div>
+        <div class="plate-desc">求职、面试、职场发展、升职加薪交流</div>
+        <div class="plate-stats">
+          <span><i class="fa fa-users"></i> 890 成员</span>
+          <span><i class="fa fa-file-text"></i> 1350 帖子</span>
+        </div>
+        <button class="join-btn">加入板块</button>
+      </div>
+    </div>
+
+    <!-- 板块6 -->
+    <div class="plate-card">
+      <img src="https://picsum.photos/600/200?6" class="plate-cover">
+      <div class="plate-body">
+        <div class="plate-header">
+          <div class="plate-name">生活娱乐坊</div>
+        </div>
+        <div class="plate-desc">日常闲聊、兴趣爱好、生活趣事、心情分享</div>
+        <div class="plate-stats">
+          <span><i class="fa fa-users"></i> 2100 成员</span>
+          <span><i class="fa fa-file-text"></i> 5680 帖子</span>
+        </div>
+        <button class="join-btn">加入板块</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // 分类切换
+  const tabs = document.querySelectorAll('.category-tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+    });
+  });
+
+  // 加入板块
+  const joinBtns = document.querySelectorAll('.join-btn');
+  joinBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(btn.classList.contains('joined')) {
+        btn.classList.remove('joined');
+        btn.textContent = '加入板块';
+      } else {
+        btn.classList.add('joined');
+        btn.textContent = '已加入';
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

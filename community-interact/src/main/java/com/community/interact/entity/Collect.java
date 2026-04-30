@@ -14,4 +14,6 @@ public class Collect {
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
     private Long folderId;
+    @TableField(value = "is_hidden", exist = false)
+    private Integer isHidden;
 }

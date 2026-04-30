@@ -1,9 +1,11 @@
 package com.community.interact.controller;
 
-import com.community.common.annotation.OperationLog;
+import com.community.common.dto.UserLikedPostItemDTO;
+import com.community.common.result.PageResult;
 import com.community.common.result.Result;
 import com.community.common.util.ContextHolder;
 import com.community.interact.service.LikeService;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,6 +19,15 @@ import org.springframework.web.bind.annotation.*;
 public class LikeController {
 
     private final LikeService likeService;
+
+    @Hidden
+    @GetMapping("/internal/user-post-likes")
+    public Result<PageResult<UserLikedPostItemDTO>> userPostLikesInternal(
+            @RequestParam Long userId,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        return Result.success(likeService.pageUserPostLikes(userId, pageNum, pageSize));
+    }
 
     @GetMapping("/check")
     @Operation(summary = "检查点赞状态", description = "检查当前用户是否点赞了指定内容")

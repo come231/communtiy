@@ -1,8 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import request from '../utils/request'
-import type { UserInfo } from '../types'
-
 interface LoginResponse {
   accessToken: string
   refreshToken: string

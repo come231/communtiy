@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/ai/chat")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "AI聊天", description = "AI对话服务接口")
 public class AiChatController {
 
@@ -28,7 +30,9 @@ public class AiChatController {
     @Operation(summary = "发送消息", description = "发送消息给AI并获取回复")
     public Result<ChatResponse> chat(@RequestBody ChatRequest request) {
         Long userId = ContextHolder.getUserId();
-        System.out.println("userId: " + userId);
+        if (log.isDebugEnabled()) {
+            log.debug("ai chat request, userId={}", userId);
+        }
         ChatResponse response = aiChatService.chat(userId, request);
         return Result.success(response);
     }

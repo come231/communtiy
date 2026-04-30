@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.community.ai.entity.AiTopic;
 import com.community.ai.mapper.AiTopicMapper;
 import com.community.ai.util.AiCallHelper;
+import com.community.common.exception.BusinessException;
+import com.community.common.result.ResultCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -47,6 +49,14 @@ public class AiTopicService {
         return aiTopicMapper.selectList(wrapper);
     }
 
+    public AiTopic getTopicById(Long id) {
+        AiTopic topic = aiTopicMapper.selectById(id);
+        if (topic == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
+        }
+        return topic;
+    }
+
     public AiTopic createTopic(String name, String description) {
         AiTopic topic = new AiTopic();
         topic.setTopicName(name);
@@ -56,5 +66,31 @@ public class AiTopicService {
         topic.setCreateTime(LocalDateTime.now());
         aiTopicMapper.insert(topic);
         return topic;
+    }
+
+    public void updateTopic(Long id, String name, String description) {
+        AiTopic topic = aiTopicMapper.selectById(id);
+        if (topic == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
+        }
+        topic.setTopicName(name);
+        topic.setDescription(description);
+        aiTopicMapper.updateById(topic);
+    }
+
+    public void deleteTopic(Long id) {
+        AiTopic topic = aiTopicMapper.selectById(id);
+        if (topic == null) {
+            throw new BusinessException(ResultCode.NOT_FOUND);
+        }
+        aiTopicMapper.deleteById(id);
+    }
+
+    public void updatePostCount(Long topicId, int delta) {
+        AiTopic topic = aiTopicMapper.selectById(topicId);
+        if (topic != null) {
+            topic.setPostCount(topic.getPostCount() + delta);
+            aiTopicMapper.updateById(topic);
+        }
     }
 }

@@ -5,6 +5,7 @@ import com.community.common.constant.CommonConstant;
 import com.community.common.constant.MQConstant;
 import com.community.common.exception.BusinessException;
 import com.community.common.result.ResultCode;
+import com.community.user.dto.FollowUserVO;
 import com.community.user.entity.User;
 import com.community.user.entity.UserFollow;
 import com.community.user.mapper.UserFollowMapper;
@@ -86,22 +87,60 @@ public class FollowService {
         log.info("用户{}取消关注用户{}", userId, followId);
     }
 
-    public List<Long> getFollowingList(Long userId) {
-        return userFollowMapper.selectList(
+    public List<FollowUserVO> getFollowingList(Long userId, Long currentUserId) {
+        List<Long> followingIds = userFollowMapper.selectList(
                 new LambdaQueryWrapper<UserFollow>()
                         .eq(UserFollow::getUserId, userId)
                         .eq(UserFollow::getStatus, CommonConstant.FOLLOW_STATUS_FOLLOW)
                         .orderByDesc(UserFollow::getCreateTime))
                 .stream().map(UserFollow::getFollowId).collect(Collectors.toList());
+
+        if (followingIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<User> users = userMapper.selectBatchIds(followingIds);
+        Map<Long, User> userMap = users.stream().collect(Collectors.toMap(User::getUserId, u -> u));
+
+        return followingIds.stream().map(id -> {
+            User user = userMap.get(id);
+            if (user == null) return null;
+            FollowUserVO vo = new FollowUserVO();
+            vo.setUserId(user.getUserId());
+            vo.setUsername(user.getUsername());
+            vo.setNickname(user.getNickname());
+            vo.setAvatar(user.getAvatar());
+            vo.setIsFollowed(currentUserId != null && isFollowing(currentUserId, id));
+            return vo;
+        }).filter(v -> v != null).collect(Collectors.toList());
     }
 
-    public List<Long> getFollowersList(Long userId) {
-        return userFollowMapper.selectList(
+    public List<FollowUserVO> getFollowersList(Long userId, Long currentUserId) {
+        List<Long> followerIds = userFollowMapper.selectList(
                 new LambdaQueryWrapper<UserFollow>()
                         .eq(UserFollow::getFollowId, userId)
                         .eq(UserFollow::getStatus, CommonConstant.FOLLOW_STATUS_FOLLOW)
                         .orderByDesc(UserFollow::getCreateTime))
                 .stream().map(UserFollow::getUserId).collect(Collectors.toList());
+
+        if (followerIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<User> users = userMapper.selectBatchIds(followerIds);
+        Map<Long, User> userMap = users.stream().collect(Collectors.toMap(User::getUserId, u -> u));
+
+        return followerIds.stream().map(id -> {
+            User user = userMap.get(id);
+            if (user == null) return null;
+            FollowUserVO vo = new FollowUserVO();
+            vo.setUserId(user.getUserId());
+            vo.setUsername(user.getUsername());
+            vo.setNickname(user.getNickname());
+            vo.setAvatar(user.getAvatar());
+            vo.setIsFollowed(currentUserId != null && isFollowing(currentUserId, id));
+            return vo;
+        }).filter(v -> v != null).collect(Collectors.toList());
     }
 
     public boolean isFollowing(Long userId, Long targetId) {

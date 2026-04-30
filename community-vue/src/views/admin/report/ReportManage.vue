@@ -241,10 +241,10 @@ function handleReset() {
 async function loadReportCount() {
   try {
     const res: any = await adminApi.reportCount()
-    if (res) {
-      stats.pending = res[0] || 0
-      stats.resolved = res[1] || 0
-      stats.rejected = res[2] || 0
+    if (res && typeof res === 'object') {
+      stats.pending = Number(res[0] ?? res['0'] ?? 0)
+      stats.resolved = Number(res[1] ?? res['1'] ?? 0)
+      stats.rejected = Number(res[2] ?? res['2'] ?? 0)
     }
   } catch (e: any) {
     console.error('加载举报统计失败', e)
