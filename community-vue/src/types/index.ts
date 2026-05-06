@@ -254,10 +254,14 @@ export interface Report {
 export interface SensitiveWord {
   id: number
   word: string
-  level: number // 1:警告 2:替换 3:拦截
+  level: number // 1:高危 2:中危 3:低危
+  type?: number
   category: string
   replacement?: string
+  status?: number
+  enabled?: boolean
   hitCount: number
+  todayHits?: number
   createTime: string
 }
 

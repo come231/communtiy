@@ -53,6 +53,7 @@ public class CommentService {
     private final PostMapper postMapper;
     private final FileFeignClient fileFeignClient;
     private final SensitiveWordFilter sensitiveWordFilter;
+    private final SensitiveFilterRecordService sensitiveFilterRecordService;
     private final RabbitTemplate rabbitTemplate;
     private final RedisUtil redisUtil;
 
@@ -99,8 +100,14 @@ public class CommentService {
         if (text.isEmpty() && imgIds.isEmpty()) {
             throw new BusinessException("评论内容或图片至少填写一项");
         }
+        String originalText = text;
+        List<String> sensitiveHits = Collections.emptyList();
+        // 评论采用替换模式：命中敏感词时替换为 *** 后再入库
         if (!text.isEmpty() && sensitiveWordFilter.containsSensitiveWord(text)) {
-            throw new BusinessException(ResultCode.SENSITIVE_WORD_FOUND);
+            sensitiveHits = sensitiveWordFilter.findSensitiveWords(text);
+            String masked = sensitiveWordFilter.filter(text, "***");
+            log.warn("评论命中敏感词，已替换后保存，postId={}, userId={}, hits={}", dto.getPostId(), userId, sensitiveHits);
+            text = masked;
         }
 
         long imgBytes = 0;
@@ -142,6 +149,17 @@ public class CommentService {
         comment.setStatus(CommonConstant.COMMENT_STATUS_NORMAL);
         comment.setFloor(floor.intValue());
         commentMapper.insert(comment);
+
+        if (!sensitiveHits.isEmpty()) {
+            sensitiveFilterRecordService.saveCommentRecord(
+                    comment.getCommentId(),
+                    userId,
+                    ContextHolder.getUsername(),
+                    originalText,
+                    text,
+                    sensitiveHits
+            );
+        }
 
         Map<Long, FileInfoDTO> byFid = new HashMap<>();
         for (FileInfoDTO f : validatedFiles) {

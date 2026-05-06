@@ -1,6 +1,7 @@
 package com.community.ai.vector;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,12 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Component
+@ConditionalOnProperty(
+        prefix = "content.audit.vector",
+        name = "store-type",
+        havingValue = "inmemory",
+        matchIfMissing = true
+)
 public class InMemoryVectorStore implements VectorStore {
 
     private final Map<String, VectorDocument> storage = new ConcurrentHashMap<>();
@@ -75,6 +82,12 @@ public class InMemoryVectorStore implements VectorStore {
     public void clear() {
         storage.clear();
         log.info("向量库已清空");
+    }
+
+    @Override
+    public List<VectorDocument> list(int limit) {
+        int n = limit > 0 ? limit : 20;
+        return storage.values().stream().limit(n).collect(Collectors.toList());
     }
 
     /**

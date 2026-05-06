@@ -12,8 +12,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * OpenAI Embedding API客户端
@@ -36,6 +34,9 @@ public class OpenAiEmbeddingClient implements EmbeddingClient {
     @Value("${spring.ai.embedding.enabled:false}")
     private boolean enabled;
 
+    @Value("${spring.ai.embedding.allow-fallback-vector:false}")
+    private boolean allowFallbackVector;
+
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(30))
             .build();
@@ -45,9 +46,11 @@ public class OpenAiEmbeddingClient implements EmbeddingClient {
     @Override
     public double[] embed(String text) {
         if (!enabled || apiKey.isEmpty()) {
-            // 降级：返回基于哈希的伪向量（仅用于测试，生产应报错或换本地模型）
-            log.warn("Embedding服务未启用，返回降级向量");
-            return fallbackVector(text);
+            if (allowFallbackVector) {
+                log.warn("Embedding服务未启用，使用降级向量（仅建议开发环境）");
+                return fallbackVector(text);
+            }
+            throw new RuntimeException("Embedding服务未启用（spring.ai.embedding.enabled=false 或 api-key 为空）");
         }
 
         try {
@@ -65,7 +68,10 @@ public class OpenAiEmbeddingClient implements EmbeddingClient {
 
             if (response.statusCode() != 200) {
                 log.error("Embedding API失败: {} - {}", response.statusCode(), response.body());
-                return fallbackVector(text);
+                if (allowFallbackVector) {
+                    return fallbackVector(text);
+                }
+                throw new RuntimeException("Embedding API调用失败: " + response.statusCode());
             }
 
             JsonNode root = objectMapper.readTree(response.body());
@@ -79,7 +85,10 @@ public class OpenAiEmbeddingClient implements EmbeddingClient {
 
         } catch (Exception e) {
             log.error("Embedding计算异常: {}", e.getMessage(), e);
-            return fallbackVector(text);
+            if (allowFallbackVector) {
+                return fallbackVector(text);
+            }
+            throw new RuntimeException("Embedding计算异常: " + e.getMessage(), e);
         }
     }
 
@@ -107,7 +116,7 @@ public class OpenAiEmbeddingClient implements EmbeddingClient {
      * 仅用于测试，无实际语义相似度能力
      */
     private double[] fallbackVector(String text) {
-        int dim = 384; // 降维以减少内存占用
+        int dim = getDimensions();
         double[] vec = new double[dim];
         byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
 

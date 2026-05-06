@@ -17,6 +17,8 @@ public class UserVO {
     private Integer gender;
     private String signature;
     private java.time.LocalDate birthday;
+    /** 用户状态: 0-禁用 1-正常 */
+    private Integer status;
     private Integer role;
     private Integer exp;
     private Integer points;
@@ -34,4 +36,6 @@ public class UserVO {
     private Long followerCount;
     private Long followingCount;
     private Boolean isFollowed;
+    /** 禁言截止时间 */
+    private java.time.LocalDateTime muteEndTime;
 }

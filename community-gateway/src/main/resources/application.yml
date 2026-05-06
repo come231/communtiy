@@ -10,6 +10,18 @@ spring:
         server-addr: localhost:8848
     gateway:
       routes:
+        # WebSocket路由 - 必须放在HTTP路由前面，优先匹配
+        - id: community-message-websocket
+          uri: ws://localhost:8098
+          predicates:
+            - Path=/ws/chat/**
+          filters:
+            - StripPrefix=0
+        # HTTP路由 - 优先级从高到低
+        - id: community-admin
+          uri: http://localhost:8099
+          predicates:
+            - Path=/admin/**,/dashboard/**
         - id: community-user
           uri: http://localhost:8096
           predicates:
@@ -22,6 +34,7 @@ spring:
           uri: http://localhost:8093
           predicates:
             - Path=/likes/**,/collects/**,/folders/**
+        # AI服务路由 - 包括所有ai路径（admin/internal/public）
         - id: community-ai
           uri: http://localhost:8092
           predicates:
@@ -38,10 +51,6 @@ spring:
           uri: http://localhost:8097
           predicates:
             - Path=/file/**
-        - id: community-admin
-          uri: http://localhost:8099
-          predicates:
-            - Path=/admin/**,/dashboard/**
       # ↓↓↓ CORS 修复成正确格式 ↓↓↓
       global-cors:
         cors-configurations:
@@ -56,6 +65,14 @@ spring:
             max-age: 3600
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+      # WebSocket和HTTP客户端配置
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 60s
+        pool:
+          type: elastic
+          max-size: 1000
+          max-idle-time: 30s
 
   data:
     redis:

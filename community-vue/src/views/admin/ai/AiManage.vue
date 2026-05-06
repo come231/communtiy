@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
       <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <div class="flex items-center gap-3 mb-2">
           <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
@@ -10,6 +10,39 @@
           <div>
             <p class="text-xs text-gray-400">总会话数</p>
             <p class="text-xl font-bold text-gray-800">{{ stats.totalSessions || 0 }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+            <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">满意反馈</p>
+            <p class="text-xl font-bold text-gray-800">{{ stats.likeCount || 0 }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
+            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">不满意反馈</p>
+            <p class="text-xl font-bold text-gray-800">{{ stats.dislikeCount || 0 }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
+            <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 018 0v2m-4-8a4 4 0 100-8 4 4 0 000 8z"/></svg>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">满意率</p>
+            <p class="text-xl font-bold text-gray-800">{{ stats.likeRate || 0 }}%</p>
           </div>
         </div>
       </div>
@@ -34,6 +67,29 @@
             <p class="text-xl font-bold text-gray-800">{{ stats.totalMessages || 0 }}</p>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <h4 class="text-sm font-semibold text-gray-800 mb-3">场景反馈 Top</h4>
+        <div v-if="(stats.sceneTop || []).length" class="space-y-2">
+          <div v-for="(row, idx) in stats.sceneTop || []" :key="`scene-${idx}`" class="flex items-center justify-between text-sm">
+            <span class="text-gray-600">{{ row.scene || '-' }}</span>
+            <span class="text-gray-800 font-medium">{{ row.cnt || 0 }}</span>
+          </div>
+        </div>
+        <p v-else class="text-xs text-gray-400">暂无数据</p>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <h4 class="text-sm font-semibold text-gray-800 mb-3">不满意原因 Top</h4>
+        <div v-if="(stats.dislikeReasonTop || []).length" class="space-y-2">
+          <div v-for="(row, idx) in stats.dislikeReasonTop || []" :key="`reason-${idx}`" class="flex items-center justify-between text-sm gap-3">
+            <span class="text-gray-600 truncate">{{ row.reason || '-' }}</span>
+            <span class="text-gray-800 font-medium shrink-0">{{ row.cnt || 0 }}</span>
+          </div>
+        </div>
+        <p v-else class="text-xs text-gray-400">暂无数据</p>
       </div>
     </div>
 
@@ -208,7 +264,7 @@ import { adminApi } from '@/api'
 import type { PostReviewRule } from '@/types'
 
 // 统计
-const stats = reactive<Record<string, number>>({})
+const stats = reactive<Record<string, any>>({})
 
 // AI 配置
 const aiConfig = reactive({

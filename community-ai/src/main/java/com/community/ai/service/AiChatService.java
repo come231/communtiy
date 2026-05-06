@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -121,5 +122,54 @@ public class AiChatService {
                .orderByDesc(AiChat::getCreateTime)
                .last("LIMIT " + MAX_HISTORY_SIZE);
         return aiChatMapper.selectList(wrapper);
+    }
+
+    /**
+     * 【管理员】获取所有会话列表（分页）
+     */
+    public Page<Map<String, Object>> getAllSessions(Integer page, Integer size) {
+        // 使用自定义SQL查询所有会话，包含用户信息
+        List<Map<String, Object>> sessions = aiChatMapper.selectAllSessionsWithUser((page - 1) * size, size);
+
+        // 获取总会话数
+        Long total = aiChatMapper.selectDistinctSessionCount();
+
+        Page<Map<String, Object>> pageResult = new Page<>(page, size);
+        pageResult.setRecords(sessions);
+        pageResult.setTotal(total);
+
+        return pageResult;
+    }
+
+    /**
+     * 【管理员】获取AI聊天统计
+     */
+    public Map<String, Object> getChatStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        // 总会话数
+        Long totalSessions = aiChatMapper.selectDistinctSessionCount();
+        stats.put("totalSessions", totalSessions);
+
+        // 总消息数
+        Long totalMessages = aiChatMapper.selectCount(null);
+        stats.put("totalMessages", totalMessages);
+
+        // 今日消息数
+        LocalDateTime today = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0);
+        LambdaQueryWrapper<AiChat> todayWrapper = new LambdaQueryWrapper<>();
+        todayWrapper.ge(AiChat::getCreateTime, today);
+        Long todayMessages = aiChatMapper.selectCount(todayWrapper);
+        stats.put("todayMessages", todayMessages);
+
+        // 今日会话数
+        Long todaySessions = aiChatMapper.selectTodaySessionCount();
+        stats.put("todaySessions", todaySessions);
+
+        // 活跃用户（近7天有聊天记录的用户）
+        Long activeUsers = aiChatMapper.selectActiveUserCount(7);
+        stats.put("activeUsers", activeUsers);
+
+        return stats;
     }
 }

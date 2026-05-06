@@ -68,6 +68,20 @@ public class JwtUtil {
         }
     }
 
+    /**
+     * 验证Token是否有效（不抛出异常）
+     * @param token JWT Token
+     * @return 是否有效
+     */
+    public boolean validateToken(String token) {
+        try {
+            parseToken(token);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     // ======================
     // 【新增】获取 token 剩余有效时间（毫秒）
     // ======================

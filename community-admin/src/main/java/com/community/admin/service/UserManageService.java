@@ -29,12 +29,12 @@ public class UserManageService {
     private final UserFeignClient userFeignClient;
 
     /**
-     * 获取用户列表（分页查询）
+     * 获取用户列表（分页查询，支持状态、角色筛选）
      */
-    public IPage<Map<String, Object>> getUserList(int page, int size, String keyword) {
+    public IPage<Map<String, Object>> getUserList(int page, int size, String keyword, Integer status, Integer role) {
         try {
             // 调用用户服务的Feign接口搜索用户
-            Result<Map<String, Object>> result = userFeignClient.searchUsers(keyword, page, size);
+            Result<Map<String, Object>> result = userFeignClient.searchUsers(keyword, page, size, status, role);
             
             if (!result.isSuccess()) {
                 log.error("获取用户列表失败: {}", result.getMessage());
@@ -61,6 +61,86 @@ public class UserManageService {
         } catch (Exception e) {
             log.error("调用用户服务获取用户列表异常: {}", e.getMessage(), e);
             throw new BusinessException(ResultCode.FAILED, "服务调用异常: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新用户状态
+     */
+    public void updateUserStatus(Long userId, Integer status) {
+        try {
+            Result<Void> result = userFeignClient.updateUserStatus(userId, status);
+            if (!result.isSuccess()) {
+                throw new BusinessException(ResultCode.FAILED, "更新用户状态失败: " + result.getMessage());
+            }
+            log.info("更新用户状态成功: userId={}, status={}", userId, status);
+        } catch (Exception e) {
+            log.error("更新用户状态异常: {}", e.getMessage(), e);
+            throw new BusinessException(ResultCode.FAILED, "更新用户状态失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新用户角色
+     */
+    public void updateUserRole(Long userId, Integer role) {
+        try {
+            Result<Void> result = userFeignClient.updateUserRole(userId, role);
+            if (!result.isSuccess()) {
+                throw new BusinessException(ResultCode.FAILED, "更新用户角色失败: " + result.getMessage());
+            }
+            log.info("更新用户角色成功: userId={}, role={}", userId, role);
+        } catch (Exception e) {
+            log.error("更新用户角色异常: {}", e.getMessage(), e);
+            throw new BusinessException(ResultCode.FAILED, "更新用户角色失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 禁言用户
+     */
+    public void muteUser(Long userId, Integer minutes, String reason) {
+        try {
+            Result<Void> result = userFeignClient.muteUser(userId, minutes, reason);
+            if (!result.isSuccess()) {
+                throw new BusinessException(ResultCode.FAILED, "禁言用户失败: " + result.getMessage());
+            }
+            log.info("禁言用户成功: userId={}, minutes={}, reason={}", userId, minutes, reason);
+        } catch (Exception e) {
+            log.error("禁言用户异常: {}", e.getMessage(), e);
+            throw new BusinessException(ResultCode.FAILED, "禁言用户失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 解除禁言
+     */
+    public void unmuteUser(Long userId) {
+        try {
+            Result<Void> result = userFeignClient.unmuteUser(userId);
+            if (!result.isSuccess()) {
+                throw new BusinessException(ResultCode.FAILED, "解除禁言失败: " + result.getMessage());
+            }
+            log.info("解除禁言成功: userId={}", userId);
+        } catch (Exception e) {
+            log.error("解除禁言异常: {}", e.getMessage(), e);
+            throw new BusinessException(ResultCode.FAILED, "解除禁言失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 批量更新用户信息
+     */
+    public void updateUser(Long userId, Map<String, Object> userInfo) {
+        try {
+            Result<Void> result = userFeignClient.updateUser(userId, userInfo);
+            if (!result.isSuccess()) {
+                throw new BusinessException(ResultCode.FAILED, "更新用户信息失败: " + result.getMessage());
+            }
+            log.info("更新用户信息成功: userId={}, fields={}", userId, userInfo.keySet());
+        } catch (Exception e) {
+            log.error("更新用户信息异常: {}", e.getMessage(), e);
+            throw new BusinessException(ResultCode.FAILED, "更新用户信息失败: " + e.getMessage());
         }
     }
 

@@ -80,7 +80,21 @@ mybatis-plus:
       logic-not-delete-value: 0
       logic-delete-value: 1
 
+# Feign 配置
+feign:
+  client:
+    config:
+      default:
+        loggerLevel: FULL
+  # 关闭 hystrix，确保 RequestContextHolder 能正常工作
+  hystrix:
+    enabled: false
+  circuitbreaker:
+    enabled: false
+
 # 日志级别
 logging:
   level:
     com.community.admin.mapper: debug
+    com.community.admin.feign: debug
+    com.community.admin.config.FeignConfig: debug

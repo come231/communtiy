@@ -1,10 +1,14 @@
 package com.community.ai.controller;
 
 import com.community.ai.config.AiConfig;
+import com.community.ai.entity.AiChat;
 import com.community.ai.entity.AiTopic;
+import com.community.ai.service.AiChatService;
 import com.community.ai.service.AiReviewService;
 import com.community.ai.service.AiTopicService;
+import com.community.ai.service.AiWriteService;
 import com.community.ai.service.PostReviewRuleService;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.community.common.dto.AiCheckRecordVO;
 import com.community.common.dto.PostReviewRuleDTO;
 import com.community.common.result.PageResult;
@@ -29,6 +33,8 @@ public class AiAdminController {
     private final AiConfig aiConfig;
     private final PostReviewRuleService postReviewRuleService;
     private final AiReviewService aiReviewService;
+    private final AiWriteService aiWriteService;
+    private final AiChatService aiChatService;
 
     @GetMapping("/check-records")
     @Operation(summary = "AI审核记录", description = "分页查询 AI 内容审核流水，可按用户、帖子、结果筛选")
@@ -127,5 +133,70 @@ public class AiAdminController {
             }
         }
         return Result.success();
+    }
+
+    @GetMapping("/feedback-stats")
+    @Operation(summary = "AI反馈统计", description = "获取满意/不满意反馈统计与原因分布")
+    public Result<Map<String, Object>> feedbackStats() {
+        return Result.success(aiWriteService.feedbackStats());
+    }
+
+    // ==================== 管理员查看用户AI会话记录 ====================
+
+    @GetMapping("/chat/sessions")
+    @Operation(summary = "【管理端】获取AI会话列表", description = "获取所有用户的AI会话列表，支持按用户ID筛选")
+    public Result<?> getAllChatSessions(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Long userId) {
+        try {
+            if (userId != null) {
+                // 获取指定用户的会话
+                return Result.success(aiChatService.getSessionList(userId));
+            } else {
+                // 获取所有会话（分页）
+                return Result.success(aiChatService.getAllSessions(page, size));
+            }
+        } catch (Exception e) {
+            return Result.error("获取会话列表失败: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/chat/history")
+    @Operation(summary = "【管理端】获取聊天记录", description = "获取指定会话的详细聊天记录")
+    public Result<Page<AiChat>> getChatHistory(
+            @RequestParam String sessionId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        try {
+            return Result.success(aiChatService.getChatHistory(sessionId, page, size));
+        } catch (Exception e) {
+            return Result.error("获取聊天记录失败: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/chat/session/{sessionId}")
+    @Operation(summary = "【管理端】删除AI会话", description = "删除指定的AI会话及其所有聊天记录")
+    public Result<Void> deleteChatSession(@PathVariable String sessionId) {
+        try {
+            boolean success = aiChatService.clearSession(sessionId);
+            if (success) {
+                return Result.success();
+            } else {
+                return Result.error("删除会话失败");
+            }
+        } catch (Exception e) {
+            return Result.error("删除会话失败: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/chat/stats")
+    @Operation(summary = "【管理端】AI聊天统计", description = "获取AI聊天使用统计信息")
+    public Result<Map<String, Object>> getChatStats() {
+        try {
+            return Result.success(aiChatService.getChatStats());
+        } catch (Exception e) {
+            return Result.error("获取统计信息失败: " + e.getMessage());
+        }
     }
 }

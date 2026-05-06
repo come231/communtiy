@@ -28,7 +28,8 @@ spring:
           temperature: 0.7
     # 语义向量Embedding配置（人机回环数据飞轮）
     embedding:
-      enabled: false                          # 是否调用OpenAI Embedding API（需要额外费用）
+      enabled: true                           # 是否调用OpenAI Embedding API（需要额外费用）
+      allow-fallback-vector: false           # 禁止伪向量降级，避免误判
       model: text-embedding-3-small          # 1536维，性价比高
       base-url: ${AI_BASE_URL:https://api.openai.com}
   data:
@@ -40,13 +41,18 @@ spring:
     port: 5672
     username: guest
     password: guest
+  elasticsearch:
+    hosts: localhost:9200
 
 # 内容审核语义向量配置（人机回环）
 content:
   audit:
     vector:
       enabled: true                           # 启用语义向量检测（内存版无需外部依赖）
+      store-type: elasticsearch              # 向量存储类型：inmemory / elasticsearch
+      index-name: ai_risk_vector_index       # Elasticsearch 向量索引名
       threshold: 0.82                         # 相似度阈值
+      min-score-for-review: 0.88             # 向量提级为人工审核的最低分（低于此分仅记录日志不提级）
       top-k: 3                                # 返回最相似样本数
       min-score-for-block: 0.90              # 极高相似度直接拦截阈值
 
@@ -61,3 +67,4 @@ mybatis-plus:
 logging:
   level:
     com.community.ai.mapper: DEBUG
+    com.community.ai.interceptor.JwtInterceptor: DEBUG

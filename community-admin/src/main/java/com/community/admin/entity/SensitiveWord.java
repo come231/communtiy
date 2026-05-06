@@ -14,7 +14,9 @@ public class SensitiveWord {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     private String word;
+    private Integer type;
     private Integer level;
+    private String replaceWord;
     private Integer status;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

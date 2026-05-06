@@ -358,6 +358,62 @@ export const aiApi = {
   summarize(content: string) {
     return request.post<string>('/ai/write/summarize', { content })
   },
+  generatePost(data: {
+    boardName?: string
+    keyword: string
+    lengthRange?: string
+    style?: string
+  }) {
+    return request.post<string>('/ai/write/post/generate', data)
+  },
+  completePost(data: {
+    boardName?: string
+    prefix: string
+  }) {
+    return request.post<string>('/ai/write/post/complete', data)
+  },
+  continuePost(data: {
+    boardName?: string
+    content: string
+    style?: string
+  }) {
+    return request.post<string>('/ai/write/post/continue', data)
+  },
+  polishPost(data: {
+    boardName?: string
+    content: string
+    polishMode?: string
+    style?: string
+    paragraphNo?: number
+  }) {
+    return request.post<string>('/ai/write/post/polish', data)
+  },
+  summarizePost(data: {
+    postTitle?: string
+    content: string
+  }) {
+    return request.post<string>('/ai/write/post/summary', data)
+  },
+  keypointsPost(data: {
+    postTitle?: string
+    content: string
+  }) {
+    return request.post<string>('/ai/write/post/keypoints', data)
+  },
+  replySuggestions(data: {
+    postTitle?: string
+    content: string
+  }) {
+    return request.post<string>('/ai/write/post/reply-suggestions', data)
+  },
+  feedback(data: {
+    feedbackType: 'like' | 'dislike'
+    feedbackReason?: string
+    scene?: string
+    operation?: string
+  }) {
+    return request.post<boolean>('/ai/write/feedback', data)
+  },
   check(content: string) {
     return request.post<any>('/ai/review/check', { content })
   },
@@ -484,10 +540,10 @@ export const adminApi = {
     return request.get<Map<number, number>>('/admin/reports-manage/count')
   },
   // 敏感词管理
-  sensitiveWords(params?: { keyword?: string; page?: number; size?: number }) {
+  sensitiveWords(params?: { keyword?: string; page?: number; size?: number; level?: number; type?: number }) {
     return request.get<PageResult<SensitiveWord>>('/admin/sensitive-words', { params })
   },
-  addSensitiveWord(data: { word: string; level: number; category: string; replacement?: string }) {
+  addSensitiveWord(data: { word: string; level: number; type?: number; replacement?: string }) {
     return request.post('/admin/sensitive-word', data)
   },
   updateSensitiveWord(id: number, data: any) {
@@ -498,6 +554,21 @@ export const adminApi = {
   },
   batchImportSensitiveWords(words: string[]) {
     return request.post('/admin/sensitive-words/import', { words })
+  },
+  sensitiveWordStats() {
+    return request.get<{ totalWords: number; totalHits: number; todayHits: number; todayNew: number }>('/admin/sensitive-words/stats')
+  },
+  sensitiveWordRecords(params?: { page?: number; size?: number; keyword?: string; userId?: number }) {
+    return request.get<PageResult<{
+      id: number
+      commentId: number
+      userId: number
+      username: string
+      originalContent: string
+      filteredContent: string
+      hitWords: string[]
+      createTime: string
+    }>>('/admin/sensitive-words/records', { params })
   },
   // 系统配置
   configs(groupKey?: string) {
@@ -540,6 +611,9 @@ export const adminApi = {
     return request.get<any>('/admin/ai/chat-records', { params })
   },
   aiStats() {
+    return request.get<any>('/admin/ai/stats')
+  },
+  aiFeedbackStats() {
     return request.get<any>('/admin/ai/stats')
   },
   /** 帖子 AI 审核规则 */

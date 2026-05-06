@@ -173,6 +173,30 @@
                 <el-button v-if="isAuthor" type="danger" size="small" plain @click="handleDelete">删除</el-button>
               </div>
             </div>
+
+            <div class="px-6 py-4 border-t border-[#e5e7eb] bg-white">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-sm text-[#6b7280] mr-1">AI辅助</span>
+                <button type="button" class="ai-op-btn" :disabled="aiLoading" @click="handleAiSummary">生成摘要</button>
+                <button type="button" class="ai-op-btn" :disabled="aiLoading" @click="handleAiKeypoints">解读重点</button>
+                <button type="button" class="ai-op-btn" :disabled="aiLoading" @click="handleAiReplySuggestions">生成回复</button>
+                <span v-if="aiLoading" class="text-xs text-[#9ca3af]">正在思考...</span>
+              </div>
+              <div v-if="aiResult" class="mt-3 rounded-xl border border-[#e5e7eb] bg-[#fafbff] p-3">
+                <div class="text-xs text-[#6366f1] mb-1">AI结果</div>
+                <pre class="text-sm text-[#374151] whitespace-pre-wrap leading-6">{{ aiResult }}</pre>
+                <div class="mt-3 flex flex-wrap items-center gap-2">
+                  <button type="button" class="ai-op-btn" @click="copyAiResult">复制结果</button>
+                  <button type="button" class="ai-op-btn" :disabled="!userStore.isLoggedIn" @click="fillCommentWithAi">填入评论框</button>
+                  <button type="button" class="ai-op-btn" :disabled="aiLoading" @click="submitAiFeedback('like')">满意</button>
+                  <button type="button" class="ai-op-btn" :disabled="aiLoading" @click="submitAiFeedback('dislike')">不满意</button>
+                  <span class="text-xs text-[#9ca3af] ml-1">不满意？</span>
+                  <button type="button" class="ai-op-btn" :disabled="aiLoading" @click="retryAiWithStyle('简洁')">更简洁</button>
+                  <button type="button" class="ai-op-btn" :disabled="aiLoading" @click="retryAiWithStyle('活泼')">更活泼</button>
+                  <button type="button" class="ai-op-btn" :disabled="aiLoading" @click="retryAiWithStyle('正式')">更正式</button>
+                </div>
+              </div>
+            </div>
           </article>
 
           <div class="user-surface-card p-6">
@@ -326,7 +350,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '../../../store/user'
-import { postApi, commentApi, interactApi, userApi, messageApi, fileApi } from '../../../api'
+import { postApi, commentApi, interactApi, userApi, messageApi, fileApi, aiApi } from '../../../api'
 import type { PostDetail, Comment } from '../../../types'
 import { renderMarkdownToHtml, parsePostImageList } from '../../../utils/renderMarkdown'
 import { resolveFileUrl, avatarDisplayUrl } from '../../../utils/resolveFileUrl'
@@ -350,6 +374,9 @@ const commentImageInputRef = ref<HTMLInputElement | null>(null)
 const submitting = ref(false)
 const replyToId = ref(0)
 const replyText = ref('')
+const aiLoading = ref(false)
+const aiResult = ref('')
+const aiLastAction = ref<'summary' | 'keypoints' | 'reply' | ''>('')
 
 // 举报相关
 const showReportDialog = ref(false)
@@ -511,6 +538,125 @@ async function loadComments(page = 1) {
 
 function renderContent(content: string): string {
   return renderMarkdownToHtml(content || '')
+}
+
+function aiPayload() {
+  return {
+    postTitle: post.value?.title || '',
+    content: post.value?.content || '',
+  }
+}
+
+async function handleAiSummary() {
+  if (!post.value) return
+  aiLoading.value = true
+  try {
+    const text = await aiApi.summarizePost(aiPayload())
+    aiResult.value = String(text || '').trim()
+    aiLastAction.value = 'summary'
+    ElMessage.success('摘要生成完成')
+  } finally {
+    aiLoading.value = false
+  }
+}
+
+async function handleAiKeypoints() {
+  if (!post.value) return
+  aiLoading.value = true
+  try {
+    const text = await aiApi.keypointsPost(aiPayload())
+    aiResult.value = String(text || '').trim()
+    aiLastAction.value = 'keypoints'
+    ElMessage.success('重点解读完成')
+  } finally {
+    aiLoading.value = false
+  }
+}
+
+async function handleAiReplySuggestions() {
+  if (!post.value) return
+  aiLoading.value = true
+  try {
+    const text = await aiApi.replySuggestions(aiPayload())
+    aiResult.value = String(text || '').trim()
+    aiLastAction.value = 'reply'
+    ElMessage.success('回复建议已生成')
+  } finally {
+    aiLoading.value = false
+  }
+}
+
+function copyAiResult() {
+  const text = (aiResult.value || '').trim()
+  if (!text) return
+  navigator.clipboard.writeText(text).then(() => {
+    ElMessage.success('已复制 AI 结果')
+  }).catch(() => {
+    ElMessage.warning('复制失败，请手动复制')
+  })
+}
+
+function fillCommentWithAi() {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录后评论')
+    return
+  }
+  const text = (aiResult.value || '').trim()
+  if (!text) return
+  commentText.value = text
+  ElMessage.success('已填入评论框')
+}
+
+async function retryAiWithStyle(style: '简洁' | '活泼' | '正式') {
+  if (!post.value || !aiResult.value.trim()) return
+  aiLoading.value = true
+  try {
+    const modeMap: Record<string, string> = {
+      summary: '语气调整',
+      keypoints: '亮点优化',
+      reply: '语气调整',
+    }
+    const mode = modeMap[aiLastAction.value] || '语气调整'
+    const text = await aiApi.polishPost({
+      boardName: post.value.sectionName || '社区交流',
+      content: aiResult.value,
+      polishMode: mode,
+      style,
+    })
+    aiResult.value = String(text || '').trim() || aiResult.value
+    aiLastAction.value = 'keypoints'
+    ElMessage.success(`已调整为${style}风格`)
+  } finally {
+    aiLoading.value = false
+  }
+}
+
+async function submitAiFeedback(type: 'like' | 'dislike') {
+  if (!aiResult.value.trim()) return
+  let reason = ''
+  if (type === 'dislike') {
+    try {
+      const ret = await ElMessageBox.prompt('请输入不满意原因（如：太啰嗦/不够亲切/信息不全）', 'AI反馈', {
+        confirmButtonText: '提交',
+        cancelButtonText: '取消',
+        inputPlaceholder: '可选填',
+      })
+      reason = (ret.value || '').trim()
+    } catch {
+      return
+    }
+  }
+  try {
+    await aiApi.feedback({
+      feedbackType: type,
+      feedbackReason: reason || undefined,
+      scene: 'detail',
+      operation: aiLastAction.value || 'unknown',
+    })
+    ElMessage.success(type === 'like' ? '感谢反馈' : '已记录，将持续优化')
+  } catch {
+    ElMessage.warning('反馈提交失败，请稍后重试')
+  }
 }
 
 function formatShareUserLabel(u: { nickname?: string; username?: string; userId?: number }) {
@@ -871,5 +1017,19 @@ function goMessage() {
   background-color: #f9fafb !important;
   border: 1px solid #e5e7eb !important;
   box-shadow: none !important;
+}
+
+.ai-op-btn {
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  color: #4f46e5;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+}
+
+.ai-op-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

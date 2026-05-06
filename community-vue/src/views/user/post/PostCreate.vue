@@ -105,7 +105,22 @@
 
           <!-- 正文 -->
           <div>
-            <label class="block text-sm font-medium text-[#374151] mb-2">正文</label>
+            <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+              <label class="block text-sm font-medium text-[#374151]">正文</label>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" class="tb-ai" :disabled="aiBusy" @click="handleAiGenerate">AI一键生成</button>
+                <button type="button" class="tb-ai" :disabled="aiBusy || !(form.content || '').trim()" @click="handleAiContinue">AI续写</button>
+                <button type="button" class="tb-ai" :disabled="aiBusy || !(form.content || '').trim()" @click="handleAiPolish">AI润色</button>
+                <button type="button" class="tb-ai" @click="showAiSettings = true">AI参数</button>
+                <button type="button" class="tb-ai" :disabled="aiBusy || !(form.content || '').trim()" @click="retryAiStyle('简洁')">更简洁</button>
+                <button type="button" class="tb-ai" :disabled="aiBusy || !(form.content || '').trim()" @click="retryAiStyle('活泼')">更活泼</button>
+                <button type="button" class="tb-ai" :disabled="aiBusy || !(form.content || '').trim()" @click="retryAiStyle('正式')">更正式</button>
+                <button type="button" class="tb-ai" :disabled="aiHistory.length <= 1 || aiHistoryIndex <= 0" @click="rollbackAiVersion">回退版本</button>
+                <button type="button" class="tb-ai" :disabled="aiHistory.length <= 1 || aiHistoryIndex >= aiHistory.length - 1" @click="forwardAiVersion">前进版本</button>
+                <button type="button" class="tb-ai" :disabled="aiBusy" @click="submitAiFeedback('like')">满意</button>
+                <button type="button" class="tb-ai" :disabled="aiBusy" @click="submitAiFeedback('dislike')">不满意</button>
+              </div>
+            </div>
             <div class="editor-shell rounded-xl border border-[#e5e7eb] overflow-hidden bg-[#f9fafb]">
               <textarea
                 ref="contentRef"
@@ -114,11 +129,16 @@
                 rows="18"
                 class="content-textarea w-full px-4 py-4 resize-y min-h-[320px] focus:outline-none focus:ring-2 focus:ring-[#818cf8]/40 text-sm leading-relaxed bg-white text-[#1f2937] placeholder:text-[#9ca3af]"
                 @paste="onPaste"
+                @input="onContentInput"
               />
             </div>
             <div class="flex items-center justify-between mt-2 text-xs text-[#9ca3af]">
               <span>支持 **加粗** *斜体* `代码` [链接](url) ![图](url) 与 ```代码块```</span>
               <span>共 {{ wordCount }} 字</span>
+            </div>
+            <div v-if="aiSuggestion" class="mt-2 text-xs text-[#6b7280] flex items-center gap-2">
+              <span class="px-1.5 py-0.5 rounded bg-[#eef2ff] text-[#6366f1]">AI补全</span>
+              <button type="button" class="hover:underline text-left" @click="applyAiSuggestion">{{ aiSuggestion }}</button>
             </div>
           </div>
 
@@ -159,6 +179,40 @@
           </div>
         </div>
     </div>
+    <el-dialog v-model="showAiSettings" title="AI参数设置" width="420px">
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm text-[#374151] mb-1">生成风格</label>
+          <el-select v-model="aiConfig.style" class="w-full">
+            <el-option label="亲切" value="亲切" />
+            <el-option label="活泼" value="活泼" />
+            <el-option label="简洁" value="简洁" />
+            <el-option label="正式" value="正式" />
+          </el-select>
+        </div>
+        <div>
+          <label class="block text-sm text-[#374151] mb-1">字数范围</label>
+          <el-select v-model="aiConfig.lengthRange" class="w-full">
+            <el-option label="50-100字" value="50-100字" />
+            <el-option label="100-200字" value="100-200字" />
+            <el-option label="200字以上" value="200字以上" />
+          </el-select>
+        </div>
+        <div>
+          <label class="block text-sm text-[#374151] mb-1">润色方向</label>
+          <el-select v-model="aiConfig.polishMode" class="w-full">
+            <el-option label="一键润色" value="一键润色" />
+            <el-option label="语气调整" value="语气调整" />
+            <el-option label="段落优化" value="段落优化" />
+            <el-option label="合规优化" value="合规优化" />
+            <el-option label="亮点优化" value="亮点优化" />
+          </el-select>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showAiSettings = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </UserPageShell>
 </template>
 
@@ -166,7 +220,7 @@
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { postApi, topicApi, fileApi } from '../../../api'
+import { postApi, topicApi, fileApi, aiApi } from '../../../api'
 import { resolveFileUrl } from '../../../utils/resolveFileUrl'
 import UserPageShell from '../../../components/user/UserPageShell.vue'
 
@@ -187,6 +241,18 @@ const galleryUploading = ref(false)
 /** 与后端 media 列表对应：1=图 2=视频 */
 const mediaGallery = ref<{ fileId: string; mediaType: 1 | 2; preview?: string; name?: string }[]>([])
 const hotTopics = ref<{ topicId: number; name: string }[]>([])
+const aiBusy = ref(false)
+const aiSuggestion = ref('')
+const showAiSettings = ref(false)
+const aiConfig = reactive({
+  style: '亲切',
+  lengthRange: '100-200字',
+  polishMode: '一键润色',
+})
+const aiLastOperation = ref('generate')
+const aiHistory = ref<string[]>([])
+const aiHistoryIndex = ref(-1)
+let completeTimer: number | null = null
 
 const form = reactive({
   title: '',
@@ -390,6 +456,167 @@ function removeGallery(i: number) {
   mediaGallery.value.splice(i, 1)
 }
 
+function boardNameText(): string {
+  return '社区交流'
+}
+
+async function handleAiGenerate() {
+  const keyword = (form.title || form.content || '').trim()
+  if (!keyword) {
+    ElMessage.warning('请先输入标题或主题关键词')
+    return
+  }
+  aiBusy.value = true
+  try {
+    const text = await aiApi.generatePost({
+      boardName: boardNameText(),
+      keyword,
+      lengthRange: aiConfig.lengthRange,
+      style: aiConfig.style,
+    })
+    form.content = String(text || '').trim()
+    aiLastOperation.value = 'generate'
+    pushAiHistory(form.content)
+    ElMessage.success('AI生成完成')
+  } finally {
+    aiBusy.value = false
+  }
+}
+
+async function handleAiContinue() {
+  const content = (form.content || '').trim()
+  if (!content) return
+  aiBusy.value = true
+  try {
+    const text = await aiApi.continuePost({
+      boardName: boardNameText(),
+      content,
+      style: aiConfig.style,
+    })
+    const tail = String(text || '').trim()
+    if (tail) {
+      form.content = `${form.content}${form.content.endsWith('\n') ? '' : '\n'}${tail}`
+      aiLastOperation.value = 'continue'
+      pushAiHistory(form.content)
+    }
+    ElMessage.success('AI续写完成')
+  } finally {
+    aiBusy.value = false
+  }
+}
+
+async function handleAiPolish() {
+  const content = (form.content || '').trim()
+  if (!content) return
+  aiBusy.value = true
+  try {
+    const text = await aiApi.polishPost({
+      boardName: boardNameText(),
+      content,
+      polishMode: aiConfig.polishMode,
+      style: aiConfig.style,
+    })
+    form.content = String(text || '').trim() || form.content
+    aiLastOperation.value = 'polish'
+    pushAiHistory(form.content)
+    ElMessage.success('AI润色成功')
+  } finally {
+    aiBusy.value = false
+  }
+}
+
+function onContentInput() {
+  if (completeTimer) window.clearTimeout(completeTimer)
+  completeTimer = window.setTimeout(async () => {
+    const prefix = (form.content || '').trim()
+    if (!prefix || prefix.length < 6 || aiBusy.value) {
+      aiSuggestion.value = ''
+      return
+    }
+    try {
+      const text = await aiApi.completePost({
+        boardName: boardNameText(),
+        prefix: prefix.slice(-60),
+      })
+      aiSuggestion.value = String(text || '').trim().slice(0, 40)
+      aiLastOperation.value = 'complete'
+    } catch {
+      aiSuggestion.value = ''
+    }
+  }, 500)
+}
+
+function applyAiSuggestion() {
+  if (!aiSuggestion.value) return
+  form.content = `${form.content}${aiSuggestion.value}`
+  pushAiHistory(form.content)
+  aiSuggestion.value = ''
+}
+
+async function retryAiStyle(style: '简洁' | '活泼' | '正式') {
+  const content = (form.content || '').trim()
+  if (!content) return
+  aiBusy.value = true
+  try {
+    const text = await aiApi.polishPost({
+      boardName: boardNameText(),
+      content,
+      polishMode: '语气调整',
+      style,
+    })
+    const next = String(text || '').trim()
+    if (next) {
+      form.content = next
+      aiLastOperation.value = 'style-retry'
+      pushAiHistory(form.content)
+    }
+    ElMessage.success(`已调整为${style}风格`)
+  } finally {
+    aiBusy.value = false
+  }
+}
+
+function pushAiHistory(content: string) {
+  const text = String(content || '')
+  if (!text.trim()) return
+  if (aiHistoryIndex.value >= 0 && aiHistory.value[aiHistoryIndex.value] === text) return
+  const next = aiHistory.value.slice(0, aiHistoryIndex.value + 1)
+  next.push(text)
+  if (next.length > 6) next.shift()
+  aiHistory.value = next
+  aiHistoryIndex.value = aiHistory.value.length - 1
+}
+
+function rollbackAiVersion() {
+  if (aiHistoryIndex.value <= 0) return
+  aiHistoryIndex.value -= 1
+  form.content = aiHistory.value[aiHistoryIndex.value] || form.content
+}
+
+function forwardAiVersion() {
+  if (aiHistoryIndex.value >= aiHistory.value.length - 1) return
+  aiHistoryIndex.value += 1
+  form.content = aiHistory.value[aiHistoryIndex.value] || form.content
+}
+
+async function submitAiFeedback(type: 'like' | 'dislike') {
+  let reason = ''
+  if (type === 'dislike') {
+    reason = window.prompt('请输入不满意原因（如：太啰嗦/不够亲切/信息不全）', '') || ''
+  }
+  try {
+    await aiApi.feedback({
+      feedbackType: type,
+      feedbackReason: reason || undefined,
+      scene: 'create',
+      operation: aiLastOperation.value,
+    })
+    ElMessage.success(type === 'like' ? '感谢反馈' : '已记录，将持续优化')
+  } catch {
+    ElMessage.warning('反馈提交失败，请稍后重试')
+  }
+}
+
 async function handleSubmit() {
   const title = (form.title || '').trim()
   const content = (form.content || '').trim()
@@ -490,6 +717,7 @@ onMounted(async () => {
       }
     }
   }
+  pushAiHistory(form.content)
 })
 </script>
 
@@ -511,6 +739,18 @@ onMounted(async () => {
 .tb:hover {
   background: #f0f4ff;
   border-color: #c7d2fe;
+}
+.tb-ai {
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  color: #4f46e5;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+}
+.tb-ai:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .editor-shell {

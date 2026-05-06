@@ -29,6 +29,18 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
     @Value("${jwt.auto-refresh-threshold:300000}")
     private long autoRefreshThreshold;
 
+    // 白名单路径（不需要认证）
+    private static final String[] WHITE_LIST = {
+            "/admin/login",
+            "/admin/refresh",
+            "/dashboard/**",
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            // 内部服务调用接口
+            "/admin/internal/**"
+    };
+
     @Override
     public boolean preHandle(
             HttpServletRequest request,
@@ -42,7 +54,21 @@ public class JwtAuthInterceptor implements HandlerInterceptor {
         }
 
         String path = request.getRequestURI();
-        log.debug("Admin服务请求路径: {}", path);
+        log.info("Admin服务请求路径: {}", path);  // 改为 info 级别确保能看到
+
+        // 2. 检查白名单（内部服务调用直接放行）
+        // 使用简单前缀匹配，更可靠
+        if (path.startsWith("/admin/internal/")) {
+            log.info("内部服务调用路径放行: {}", path);
+            return true;
+        }
+
+        for (String pattern : WHITE_LIST) {
+            if (pathMatcher.match(pattern, path)) {
+                log.info("白名单路径放行: {}", path);
+                return true;
+            }
+        }
 
         // 3. 获取 Token
         String bearerToken = request.getHeader("Authorization");

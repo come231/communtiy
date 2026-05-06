@@ -48,6 +48,13 @@ public interface VectorStore {
     void clear();
 
     /**
+     * 调试：列出部分样本（实现可按时间倒序）
+     */
+    default List<VectorDocument> list(int limit) {
+        return List.of();
+    }
+
+    /**
      * 向量文档
      */
     record VectorDocument(String id, String content, double[] vector, String label) {}

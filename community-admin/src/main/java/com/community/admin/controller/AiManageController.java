@@ -49,14 +49,38 @@ public class AiManageController {
     }
 
     @GetMapping("/chat-records")
-    @Operation(summary = "AI对话记录", description = "获取AI对话会话列表")
+    @Operation(summary = "AI对话记录", description = "获取AI对话会话列表（支持按用户筛选）")
     public Result<?> getChatRecords(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Long userId) {
         try {
-            return aiFeignClient.getChatSessions(page, size);
+            return aiFeignClient.getChatSessions(page, size, userId);
         } catch (Exception e) {
             return Result.error("获取AI对话记录失败: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/chat-records/{sessionId}")
+    @Operation(summary = "AI对话详情", description = "获取指定会话的详细聊天记录")
+    public Result<?> getChatHistory(
+            @PathVariable String sessionId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        try {
+            return aiFeignClient.getChatHistory(sessionId, page, size);
+        } catch (Exception e) {
+            return Result.error("获取AI对话详情失败: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/chat-records/{sessionId}")
+    @Operation(summary = "删除AI会话", description = "删除指定AI会话的所有记录")
+    public Result<Void> deleteChatSession(@PathVariable String sessionId) {
+        try {
+            return aiFeignClient.deleteChatSession(sessionId);
+        } catch (Exception e) {
+            return Result.error("删除AI会话失败: " + e.getMessage());
         }
     }
 
@@ -108,6 +132,10 @@ public class AiManageController {
             stats.put("totalSessions", 0);
             stats.put("todaySessions", 0);
             stats.put("totalMessages", 0);
+            Result<Map<String, Object>> feedbackRes = aiFeignClient.getFeedbackStats();
+            if (feedbackRes != null && feedbackRes.getData() != null) {
+                stats.putAll(feedbackRes.getData());
+            }
             return Result.success(stats);
         } catch (Exception e) {
             return Result.error("获取AI统计失败: " + e.getMessage());

@@ -11,6 +11,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -35,6 +36,9 @@ public class SemanticRiskDetector {
 
     @Value("${content.audit.vector.threshold:0.82}")
     private double vectorThreshold;
+
+    @Value("${content.audit.vector.min-score-for-review:0.88}")
+    private double reviewThreshold;
 
     @Value("${content.audit.vector.top-k:3}")
     private int vectorTopK;
@@ -118,7 +122,7 @@ public class SemanticRiskDetector {
                     }
 
                     // 中等相似度至少转人工
-                    if (builtin.minCheckResult == 0) {
+                    if (builtin.minCheckResult == 0 && topHit.score() >= reviewThreshold) {
                         return new DetectionResult(
                                 1,
                                 Math.min(45.0, 25 + topHit.score() * 20),
@@ -126,6 +130,12 @@ public class SemanticRiskDetector {
                                 List.of("向量语义疑似:" + topHit.label()),
                                 detectionLog
                         );
+                    }
+                    if (builtin.minCheckResult == 0) {
+                        detectionLog.add(String.format(
+                                "向量命中但未达提级阈值: score=%.3f < reviewThreshold=%.3f, 保持不提级",
+                                topHit.score(), reviewThreshold
+                        ));
                     }
                 }
             } catch (Exception e) {
@@ -174,6 +184,29 @@ public class SemanticRiskDetector {
         } catch (Exception e) {
             log.error("样本入库失败: {}", e.getMessage(), e);
         }
+    }
+
+    /**
+     * 调试：输入文本，返回向量相似命中
+     */
+    public List<VectorStore.ScoredVector> debugSearch(String content, int topK, Double minScore) {
+        if (!vectorEnabled || content == null || content.isBlank()) {
+            return Collections.emptyList();
+        }
+        double[] queryVec = embeddingClient.embed(content);
+        int k = topK > 0 ? topK : vectorTopK;
+        double threshold = minScore != null ? minScore : vectorThreshold;
+        return vectorStore.search(queryVec, k, threshold);
+    }
+
+    /**
+     * 调试：查看向量库部分样本
+     */
+    public List<VectorStore.VectorDocument> listSamples(int limit) {
+        if (!vectorEnabled) {
+            return Collections.emptyList();
+        }
+        return vectorStore.list(limit);
     }
 
     private String truncate(String s, int maxLen) {

@@ -19,13 +19,17 @@ public interface AiFeignClient {
     @GetMapping("/ai/chat/sessions")
     Result<?> getChatSessions(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size);
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Long userId);
 
     @GetMapping("/ai/chat/history")
     Result<?> getChatHistory(
-            @RequestParam Long sessionId,
+            @RequestParam String sessionId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int size);
+
+    @DeleteMapping("/ai/chat/session/{sessionId}")
+    Result<Void> deleteChatSession(@PathVariable("sessionId") String sessionId);
 
     @GetMapping("/ai/admin/check-records")
     Result<PageResult<AiCheckRecordVO>> listCheckRecords(
@@ -52,4 +56,7 @@ public interface AiFeignClient {
 
     @DeleteMapping("/ai/admin/post-review-rules/{id}")
     Result<Void> deletePostReviewRule(@PathVariable("id") Long id);
+
+    @GetMapping("/ai/admin/feedback-stats")
+    Result<Map<String, Object>> getFeedbackStats();
 }

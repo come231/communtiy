@@ -3,6 +3,10 @@ package com.community.admin.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.community.admin.entity.SensitiveWord;
 import com.community.admin.service.SensitiveWordService;
+import com.community.admin.vo.SensitiveFilterRecordVO;
+import com.community.admin.vo.SensitiveWordStatsVO;
+import com.community.admin.vo.SensitiveWordVO;
+import com.community.common.result.PageResult;
 import com.community.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -25,11 +29,13 @@ public class SensitiveWordController {
 
     @GetMapping("/sensitive-words")
     @Operation(summary = "敏感词列表", description = "分页获取敏感词列表")
-    public Result<IPage<SensitiveWord>> getSensitiveWords(
+    public Result<IPage<SensitiveWordVO>> getSensitiveWords(
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") int page,
             @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "搜索关键词") @RequestParam(required = false) String keyword) {
-        return Result.success(sensitiveWordService.getSensitiveWords(page, size, keyword));
+            @Parameter(description = "搜索关键词") @RequestParam(required = false) String keyword,
+            @Parameter(description = "级别") @RequestParam(required = false) Integer level,
+            @Parameter(description = "分类") @RequestParam(required = false) Integer type) {
+        return Result.success(sensitiveWordService.getSensitiveWords(page, size, keyword, level, type));
     }
 
     @PostMapping("/sensitive-word")
@@ -37,7 +43,9 @@ public class SensitiveWordController {
     public Result<SensitiveWord> addSensitiveWord(@RequestBody Map<String, Object> params) {
         String word = (String) params.get("word");
         Integer level = params.get("level") != null ? ((Number) params.get("level")).intValue() : 1;
-        SensitiveWord result = sensitiveWordService.addSensitiveWord(word, level);
+        Integer type = params.get("type") != null ? ((Number) params.get("type")).intValue() : 0;
+        String replacement = (String) params.get("replacement");
+        SensitiveWord result = sensitiveWordService.addSensitiveWord(word, level, type, replacement);
         return Result.success(result);
     }
 
@@ -47,7 +55,10 @@ public class SensitiveWordController {
                                             @RequestBody Map<String, Object> params) {
         String word = (String) params.get("word");
         Integer level = params.get("level") != null ? ((Number) params.get("level")).intValue() : null;
-        sensitiveWordService.updateSensitiveWord(id, word, level);
+        Integer type = params.get("type") != null ? ((Number) params.get("type")).intValue() : null;
+        Integer status = params.get("status") != null ? ((Number) params.get("status")).intValue() : null;
+        String replacement = (String) params.get("replacement");
+        sensitiveWordService.updateSensitiveWord(id, word, level, type, replacement, status);
         return Result.success();
     }
 
@@ -65,5 +76,21 @@ public class SensitiveWordController {
         List<String> words = (List<String>) params.get("words");
         int count = sensitiveWordService.importSensitiveWords(words);
         return Result.success("成功导入" + count + "个敏感词", null);
+    }
+
+    @GetMapping("/sensitive-words/stats")
+    @Operation(summary = "敏感词统计", description = "查询敏感词数量与拦截次数统计")
+    public Result<SensitiveWordStatsVO> stats() {
+        return Result.success(sensitiveWordService.getStats());
+    }
+
+    @GetMapping("/sensitive-words/records")
+    @Operation(summary = "过滤记录表", description = "分页查询敏感词过滤记录")
+    public Result<PageResult<SensitiveFilterRecordVO>> records(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long userId) {
+        return Result.success(sensitiveWordService.getFilterRecords(page, size, keyword, userId));
     }
 }

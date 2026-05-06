@@ -95,6 +95,17 @@ public class UserController {
         return Result.success(userService.listUsers(keyword, pageNum, pageSize));
     }
 
+    @GetMapping("/admin/search")
+    @Operation(summary = "【管理员】搜索用户", description = "管理员搜索用户，支持状态和角色筛选")
+    public Result<PageResult<UserVO>> adminSearchUsers(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Integer role) {
+        return Result.success(userService.searchUsers(keyword, pageNum, pageSize, status, role));
+    }
+
     @PostMapping("/follow/{userId}")
     @OperationLog(module = "用户", operation = "关注用户")
     @Operation(summary = "关注用户", description = "关注指定用户")

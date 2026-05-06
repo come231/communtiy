@@ -259,6 +259,7 @@ public class UserService {
         vo.setGender(user.getGender());
         vo.setSignature(user.getSignature());
         vo.setBirthday(user.getBirthday());
+        vo.setStatus(user.getStatus());  // 设置用户状态
         vo.setRole(user.getRole());
         vo.setExp(user.getExp());
         vo.setPoints(user.getPoints());
@@ -269,6 +270,7 @@ public class UserService {
         vo.setHideCollects(user.getHideCollects());
         vo.setBioTags(user.getBioTags());
         vo.setContinuousCheckin(user.getContinuousCheckin());
+        vo.setMuteEndTime(user.getMuteEndTime());  // 设置禁言截止时间
         vo.setIsFollowed(isFollowed);
 
         // 统计关注数和粉丝数
@@ -319,6 +321,117 @@ public class UserService {
         }
         user.setStatus(status);
         userMapper.updateById(user);
+    }
+
+    /**
+     * 管理员更新用户角色
+     */
+    public void updateRole(Long userId, Integer role) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        user.setRole(role);
+        userMapper.updateById(user);
+    }
+
+    /**
+     * 禁言用户
+     */
+    public void muteUser(Long userId, Integer minutes, String reason) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        // 计算禁言结束时间
+        LocalDateTime muteEndTime = LocalDateTime.now().plusMinutes(minutes);
+        user.setMuteEndTime(muteEndTime);
+        userMapper.updateById(user);
+        log.info("用户 {} 被禁言 {} 分钟，原因: {}", userId, minutes, reason);
+    }
+
+    /**
+     * 解除禁言
+     */
+    public void unmuteUser(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        user.setMuteEndTime(null);
+        userMapper.updateById(user);
+        log.info("用户 {} 禁言已解除", userId);
+    }
+
+    /**
+     * 管理员批量更新用户信息
+     */
+    public void adminUpdateUser(Long userId, Map<String, Object> userInfo) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+
+        // 更新状态
+        if (userInfo.containsKey("status")) {
+            Integer status = ((Number) userInfo.get("status")).intValue();
+            user.setStatus(status);
+        }
+
+        // 更新角色
+        if (userInfo.containsKey("role")) {
+            Integer role = ((Number) userInfo.get("role")).intValue();
+            user.setRole(role);
+        }
+
+        // 更新经验值
+        if (userInfo.containsKey("exp")) {
+            Integer exp = ((Number) userInfo.get("exp")).intValue();
+            user.setExp(exp);
+        }
+
+        // 更新积分
+        if (userInfo.containsKey("points")) {
+            Integer points = ((Number) userInfo.get("points")).intValue();
+            user.setPoints(points);
+        }
+
+        // 更新昵称
+        if (userInfo.containsKey("nickname")) {
+            user.setNickname((String) userInfo.get("nickname"));
+        }
+
+        userMapper.updateById(user);
+        log.info("管理员更新用户信息: userId={}, fields={}", userId, userInfo.keySet());
+    }
+
+    /**
+     * 搜索用户（支持状态和角色筛选）- 用于管理员
+     */
+    public PageResult<UserVO> searchUsers(String keyword, Integer pageNum, Integer pageSize, Integer status, Integer role) {
+        Page<User> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+
+        // 关键词搜索
+        if (StrUtil.isNotBlank(keyword)) {
+            wrapper.and(w -> w.like(User::getUsername, keyword)
+                    .or().like(User::getNickname, keyword));
+        }
+
+        // 状态筛选
+        if (status != null) {
+            wrapper.eq(User::getStatus, status);
+        }
+
+        // 角色筛选
+        if (role != null) {
+            wrapper.eq(User::getRole, role);
+        }
+
+        wrapper.orderByDesc(User::getCreateTime);
+        Page<User> result = userMapper.selectPage(page, wrapper);
+        List<UserVO> voList = result.getRecords().stream().map(u -> convertToVO(u, null)).toList();
+        return new PageResult<>(voList, result.getTotal(), result.getSize(), result.getCurrent());
     }
 
     /**

@@ -23,7 +23,9 @@ public class MvcConfig implements WebMvcConfigurer {
                         "/dashboard/**",
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
-                        "/swagger-ui.html"
+                        "/swagger-ui.html",
+                        // 内部服务调用接口，直接排除拦截
+                        "/admin/internal/**"
                 );
     }
 }

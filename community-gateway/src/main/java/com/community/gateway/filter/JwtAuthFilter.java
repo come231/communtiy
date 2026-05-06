@@ -48,14 +48,18 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             "/posts/list", "/posts/hot", "/posts/detail/**",
             "/comments",
             "/hot-keyword/**",
-            // AI chat endpoints
-            "/ai/write/**", "/ai/review/**","/ai/admin/**",
+            // AI endpoints - 管理员需要访问的AI接口
+            "/ai/write/**", "/ai/review/**", "/ai/admin/**", "/ai/internal/**",
             // Notice endpoints
             "/notice/list", "/notice/unread-count",
             // Chat endpoints
             "/chat/users", "/chat/list", "/chat/unread-count",
+            // WebSocket endpoints - 必须放行以支持WebSocket握手
+            "/ws/chat/**",
             // Interact stats
-            "/interact/stats"
+            "/interact/stats",
+            // Admin internal endpoints (服务间调用敏感词同步等)
+            "/admin/internal/**"
     );
 
     private static final Set<String> AUTH_REQUIRED_PATHS = Set.of(

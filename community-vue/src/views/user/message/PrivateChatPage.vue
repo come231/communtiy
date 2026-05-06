@@ -109,8 +109,10 @@
                 <div class="chat-header-name font-semibold text-base truncate">
                   {{ selectedPeer.nickName || '用户' }}
                 </div>
-                <div class="chat-header-status text-xs text-emerald-500 flex items-center gap-1">
-                  <i class="fa fa-circle text-[6px]"></i> 在线
+                <div class="chat-header-status text-xs flex items-center gap-1"
+                     :class="wsConnected ? 'text-emerald-500' : 'text-amber-500'">
+                  <i class="fa fa-circle text-[6px]"></i>
+                  {{ wsConnected ? '在线' : connectionStatusText }}
                 </div>
               </div>
               <router-link
@@ -170,6 +172,7 @@ import { messageApi } from '../../../api'
 import { resolveFileUrl } from '../../../utils/resolveFileUrl'
 import { normalizeConversationList } from '../../../utils/conversation'
 import { useUserStore } from '../../../store/user'
+import { chatSocket, ConnectionStatus, type ChatMessage } from '../../../utils/chatSocket'
 import type { Conversation, PrivateMessage } from '../../../types'
 
 const route = useRoute()
@@ -183,6 +186,7 @@ const conversations = ref<Conversation[]>([])
 const selectedPeer = ref<Conversation | null>(null)
 const mobileChatOpen = ref(false)
 const compact = ref(false)
+const wsConnected = ref(false) // WebSocket连接状态
 
 const messages = ref<PrivateMessage[]>([])
 const msgLoading = ref(false)
@@ -191,6 +195,22 @@ const sending = ref(false)
 const msgAreaRef = ref<HTMLElement | null>(null)
 
 const myId = computed(() => (userStore.userId ? Number(userStore.userId) : 0))
+
+// WebSocket连接状态显示
+const connectionStatusText = computed(() => {
+  switch (chatSocket.getStatus()) {
+    case ConnectionStatus.CONNECTED:
+      return '已连接'
+    case ConnectionStatus.CONNECTING:
+      return '连接中...'
+    case ConnectionStatus.RECONNECTING:
+      return '重连中...'
+    case ConnectionStatus.ERROR:
+      return '连接错误'
+    default:
+      return '未连接'
+  }
+})
 
 const filteredConversations = computed(() => {
   const kw = searchKw.value.trim().toLowerCase()
@@ -269,11 +289,19 @@ async function selectPeer(c: Conversation) {
   selectedPeer.value = c
   if (compact.value) mobileChatOpen.value = true
   await loadMessages(c.otherUserId)
-  try {
-    await messageApi.markRead(c.otherUserId)
+
+  // 优先使用WebSocket标记已读
+  if (chatSocket.isConnected()) {
+    chatSocket.markAsRead(c.otherUserId)
     c.unreadCount = 0
-  } catch {
-    /* ignore */
+  } else {
+    // 回退到HTTP
+    try {
+      await messageApi.markRead(c.otherUserId)
+      c.unreadCount = 0
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -286,26 +314,105 @@ function autoGrow(e: Event) {
 async function send() {
   const text = inputText.value.trim()
   if (!text || !selectedPeer.value || sending.value) return
-  sending.value = true
-  try {
-    const sent: any = await messageApi.send({ toUserId: selectedPeer.value.otherUserId, content: text })
-    inputText.value = ''
-    if (sent?.id) {
-      messages.value.push(sent)
-    } else {
-      await loadMessages(selectedPeer.value.otherUserId)
+
+  // 优先使用WebSocket发送
+  if (chatSocket.isConnected()) {
+    sending.value = true
+    try {
+      const success = chatSocket.sendMessage(selectedPeer.value.otherUserId, text)
+      if (success) {
+        inputText.value = ''
+        // 乐观更新：立即在本地显示消息
+        const tempMsg: PrivateMessage = {
+          id: Date.now(), // 临时ID
+          fromUserId: myId.value,
+          toUserId: selectedPeer.value.otherUserId,
+          content: text,
+          createTime: new Date().toISOString(),
+          isRead: false
+        }
+        messages.value.push(tempMsg)
+        selectedPeer.value.lastMessage = text
+        selectedPeer.value.lastTime = new Date().toISOString()
+        await nextTick()
+        scrollBottom()
+      } else {
+        ElMessage.error('发送失败，请重试')
+      }
+    } finally {
+      sending.value = false
     }
-    selectedPeer.value.lastMessage = text
-    selectedPeer.value.lastTime = new Date().toISOString()
-    await loadList()
-    await nextTick()
-    scrollBottom()
-  } catch (e) {
-    console.error(e)
-    ElMessage.error('发送失败')
-  } finally {
-    sending.value = false
+  } else {
+    // WebSocket未连接时回退到HTTP
+    sending.value = true
+    try {
+      const sent: any = await messageApi.send({ toUserId: selectedPeer.value.otherUserId, content: text })
+      inputText.value = ''
+      if (sent?.id) {
+        messages.value.push(sent)
+      } else {
+        await loadMessages(selectedPeer.value.otherUserId)
+      }
+      selectedPeer.value.lastMessage = text
+      selectedPeer.value.lastTime = new Date().toISOString()
+      await loadList()
+      await nextTick()
+      scrollBottom()
+    } catch (e) {
+      console.error(e)
+      ElMessage.error('发送失败')
+    } finally {
+      sending.value = false
+    }
   }
+}
+
+/**
+ * 处理收到的WebSocket消息
+ */
+function handleIncomingMessage(msg: ChatMessage) {
+  // 判断是否是当前选中的对话
+  if (selectedPeer.value &&
+      (msg.fromUserId === selectedPeer.value.otherUserId || msg.toUserId === selectedPeer.value.otherUserId)) {
+    // 添加到消息列表
+    const newMsg: PrivateMessage = {
+      id: Date.now(), // 临时ID，后续可通过后端确认更新
+      fromUserId: msg.fromUserId,
+      toUserId: msg.toUserId,
+      content: msg.content,
+      createTime: new Date(msg.timestamp).toISOString(),
+      isRead: true // 当前正在查看，标记为已读
+    }
+    messages.value.push(newMsg)
+    nextTick(() => scrollBottom())
+
+    // 如果是对方发来的消息，标记为已读
+    if (msg.fromUserId === selectedPeer.value.otherUserId) {
+      chatSocket.markAsRead(msg.fromUserId)
+    }
+  } else {
+    // 不是当前对话，更新未读数
+    const conv = conversations.value.find(c => c.otherUserId === msg.fromUserId)
+    if (conv) {
+      conv.unreadCount = (conv.unreadCount || 0) + 1
+      conv.lastMessage = msg.content
+      conv.lastTime = new Date(msg.timestamp).toISOString()
+    }
+    // 播放提示音（可选）
+    // new Audio('/notification.mp3').play().catch(() => {})
+  }
+}
+
+/**
+ * 处理已读回执
+ */
+function handleReadReceipt(receipt: { readerId: number; timestamp: number }) {
+  // 更新消息的已读状态
+  messages.value.forEach(msg => {
+    if (msg.toUserId === receipt.readerId) {
+      msg.isRead = true
+    }
+  })
 }
 
 function trySelectFromQuery() {
@@ -336,15 +443,43 @@ watch(
   },
 )
 
+// WebSocket事件监听清理函数
+let unsubscribeMessage: (() => void) | null = null
+let unsubscribeReadReceipt: (() => void) | null = null
+let unsubscribeStatus: (() => void) | null = null
+
 onMounted(async () => {
   updateCompact()
   window.addEventListener('resize', updateCompact)
   await loadList()
   trySelectFromQuery()
+
+  // 建立WebSocket连接
+  chatSocket.connect()
+
+  // 监听WebSocket消息
+  unsubscribeMessage = chatSocket.onMessage(handleIncomingMessage)
+  unsubscribeReadReceipt = chatSocket.onReadReceipt(handleReadReceipt)
+  unsubscribeStatus = chatSocket.onStatusChange((status) => {
+    wsConnected.value = status === ConnectionStatus.CONNECTED
+    if (status === ConnectionStatus.CONNECTED) {
+      console.log('[PrivateChat] WebSocket已连接')
+    } else if (status === ConnectionStatus.ERROR) {
+      ElMessage.error('聊天服务连接异常')
+    }
+  })
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateCompact)
+
+  // 清理WebSocket监听
+  unsubscribeMessage?.()
+  unsubscribeReadReceipt?.()
+  unsubscribeStatus?.()
+
+  // 断开WebSocket连接
+  chatSocket.disconnect()
 })
 </script>
 

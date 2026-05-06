@@ -26,8 +26,10 @@ public class UserManageController {
     public Result<IPage<Map<String, Object>>> getUserList(
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") int page,
             @Parameter(description = "每页数量") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "搜索关键词") @RequestParam(required = false) String keyword) {
-        return Result.success(userManageService.getUserList(page, size, keyword));
+            @Parameter(description = "搜索关键词") @RequestParam(required = false) String keyword,
+            @Parameter(description = "用户状态筛选：0-禁用 1-正常") @RequestParam(required = false) Integer status,
+            @Parameter(description = "角色筛选：0-普通用户 1-管理员") @RequestParam(required = false) Integer role) {
+        return Result.success(userManageService.getUserList(page, size, keyword, status, role));
     }
 
     @GetMapping("/{id}")
@@ -52,6 +54,54 @@ public class UserManageController {
     @Operation(summary = "解封用户", description = "解除对用户的封禁")
     public Result<Void> unbanUser(@PathVariable Long id) {
         userManageService.unbanUser(id);
+        return Result.success();
+    }
+
+    @PutMapping("/{id}/status")
+    @Operation(summary = "修改用户状态", description = "修改用户账号状态：0-禁用 1-正常")
+    public Result<Void> updateUserStatus(
+            @PathVariable Long id,
+            @Parameter(description = "状态：0-禁用 1-正常", required = true)
+            @RequestParam Integer status) {
+        userManageService.updateUserStatus(id, status);
+        return Result.success();
+    }
+
+    @PutMapping("/{id}/role")
+    @Operation(summary = "修改用户角色", description = "修改用户角色：0-普通用户 1-管理员")
+    public Result<Void> updateUserRole(
+            @PathVariable Long id,
+            @Parameter(description = "角色：0-普通用户 1-管理员", required = true)
+            @RequestParam Integer role) {
+        userManageService.updateUserRole(id, role);
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/mute")
+    @Operation(summary = "禁言用户", description = "禁止用户发言一段时间")
+    public Result<Void> muteUser(
+            @PathVariable Long id,
+            @Parameter(description = "禁言时长（分钟）", required = true)
+            @RequestParam Integer minutes,
+            @Parameter(description = "禁言原因")
+            @RequestParam(required = false) String reason) {
+        userManageService.muteUser(id, minutes, reason);
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/unmute")
+    @Operation(summary = "解除禁言", description = "提前解除用户禁言")
+    public Result<Void> unmuteUser(@PathVariable Long id) {
+        userManageService.unmuteUser(id);
+        return Result.success();
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "更新用户信息", description = "批量更新用户信息（状态、角色、经验值、积分等）")
+    public Result<Void> updateUser(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> userInfo) {
+        userManageService.updateUser(id, userInfo);
         return Result.success();
     }
 }
